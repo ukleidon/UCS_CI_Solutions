@@ -1,0 +1,24 @@
+---
+################################################################################
+#
+# Title:        00-mds-save-config.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Save existing configuration from MDS to local file
+#
+# Variables:    
+#               
+#
+# Modules:      nxos_config
+#
+# URLs:         https://galaxy.ansible.com/cisco/mds
+#
+# Built-in help:
+# ansible-doc cisco.nxos_config
+#
+################################################################################
+  # Save the MDS configuration
+  #
+  - name: Save the MDS Configuration
+    nxos_config:
+      save_when: modified

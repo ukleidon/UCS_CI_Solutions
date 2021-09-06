@@ -1,0 +1,31 @@
+---
+################################################################################
+#
+# Title:        02-global-settings.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure global settings on NXOS devices
+#
+# Variables:    global_settings = List of global settings to configure
+#
+# Modules:      nxos_config
+#
+# URLs:         https://galaxy.ansible.com/cisco/nxos
+#               https://developer.cisco.com/
+#
+# Built-in help:
+# ansible-doc cisco.nxos.nxos_config
+#
+################################################################################
+#
+#
+#- hosts: nexus* n5k*
+#  connection: network_cli
+#  gather_facts: no
+#  tasks:
+    - name: 02 Configure NX-OS global settings
+      nxos_config:
+        lines: "{{ item }}"
+      loop: "{{ global_settings }}"
+      when: global_settings is defined
+

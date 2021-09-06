@@ -1,0 +1,30 @@
+---
+#     ------------------------------------------------------------------------------
+#
+# ESXi host configuration steps
+- hosts: vcenter*
+  connection: local
+  gather_facts: no
+  tasks:
+     - include_tasks: vmware/01-create_dc.yml
+     - include_tasks: vmware/02-create_cluster.yml
+     - include_tasks: vmware/05-create_vds.yml
+     - include_tasks: vmware/06-create_vds_pg.yml
+
+- hosts: esx*
+  connection: local
+  gather_facts: no
+  serial: 1
+  tasks:
+     - include_tasks: vmware/11-add_esxi_hosts_to_VC.yml
+     - include_tasks: vmware/13-add_esxi_hosts_to_dvs.yml
+     - include_tasks: vmware/15-add_esxi_ntp.yml
+     - include_tasks: vmware/17-modify_esxi_vswitch0.yml
+     - include_tasks: vmware/18-create_esxi_vswitch1.yml
+     - include_tasks: vmware/19-create_esxi_nfs_vmotion_PG.yml
+     - include_tasks: vmware/20-add_esxi_vmotion_vmk.yml
+     - include_tasks: vmware/21-add_esxi_nfs_vmk.yml
+     - include_tasks: vmware/25-add_esxi_nfs_datastores.yml
+#
+
+

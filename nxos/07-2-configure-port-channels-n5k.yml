@@ -1,0 +1,87 @@
+---
+################################################################################
+#
+# Title:        07-2-configure-port-channels-n5k.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure port-channels on Nexus 5000 series devices
+#
+# Variables:    
+#
+#               
+# Modules:      
+#
+# URLs:         https://galaxy.ansible.com/cisco/nxos
+#               https://developer.cisco.com/
+#
+# Built-in help:
+# ansible-doc cisco.nxos.
+#
+################################################################################
+#
+#
+#- hosts: n5k*
+#  connection: network_cli
+#  gather_facts: no
+#  tasks:
+    - name: 07 Add network interfaces to port-channel
+      nxos_lag_interfaces:
+        config:
+          - name: "{{ item.interface }}"
+            members: "{{ item.members }}"
+        state: "{{ nx_cfg_state }}"
+      loop: "{{ all_port_channels }}"
+      when: state == 'present' 
+      loop_control:
+         label: "{{ item.interface }} {{ item.members }}"
+
+    - name: 07 Configure port-channels and their members
+      nxos_interfaces:
+        config:
+          - name: "{{ item.interface }}"
+            speed: "{{ item.speed | default(omit) }}"
+            duplex: "{{ item.duplex | default(omit) }}"
+        state: "{{ nx_cfg_state }}"
+      loop: "{{ all_port_channels }}"
+      when: all_port_channels is defined and state == 'present' 
+      loop_control:
+        label: "{{ item.interface }}"
+
+    # This task configures settings on Port-Channels
+    - name: Set - spanning-tree port type and switchport mode
+      nxos_config:
+        lines:
+          - switchport mode {{ item.port_mode | default(default_pm) }}
+          - spanning-tree port type {{ item.st_port_type | default(default_stpt) }}
+        parents: interface {{ item.interface }}
+      loop: "{{ all_port_channels }}"
+      when: state == 'present' 
+      loop_control:
+          label: "PC: {{ item.interface }}, Type : {{ item.st_port_type | default(default_stpt) }}"
+
+    # This task removes configuration from port-channel and members
+    - name: Removes - port configurations
+      nxos_config:
+        lines:
+          - no spanning-tree port type {{ item.st_port_type | default(default_stpt) }}
+          - no switchport trunk native vlan {{ native_vlan_id }}
+          - no switchport trunk allowed vlan 
+          - no switchport access vlan {{ native_vlan_id }} 
+          - no switchport mode {{ item.port_mode | default(default_pm) }}
+        parents: interface {{ item.interface }}
+      loop: "{{ all_port_channels }}"
+      when: state == 'absent' 
+      loop_control:
+          label: "{{ item.interface }}"
+
+    # This task removes interfaces from Port-Channels
+    - name: Remove network interfaces from port-channel
+      nxos_lag_interfaces:
+        config:
+          - name: "{{ item.interface }}"
+            members: "{{ item.members }}"
+        state: "{{ nx_cfg_state }}"
+      loop: "{{ all_port_channels }}"
+      when: state == 'absent' 
+      loop_control:
+         label: "{{ item.interface }}"

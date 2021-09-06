@@ -1,0 +1,55 @@
+---
+
+# file: hosts_vars/nexus_tor
+
+# Variables File for UCS configuration WDF02-4-POD4 FLEXPOD Solution
+#  TOP OF RACK Switch
+#
+#------------------------------------------------------------------------------
+# Setup Converged Infrastructure basics ?
+#
+# Define if the day0/day1 configuration of the hardware components like,
+# server ports, uplink ports, DNS server, power policies and others 
+# are configured or not. 
+# In case this parameter is not set to 'true', only the workload specific
+# configuration, like BIOS policy, storage policy, ServiceProfileTemplate
+# are configured. The parameter is NOT used in any working modules, it is 
+# only used in the main playbook file importing other playbooks.
+#
+setup_ci: 'true'
+
+# In case a single Nexus switch is used instead of a VPC pair.
+#
+single_nexus: 'true'
+lan_state: 'present'
+
+
+#------------------------------------------------------------------------------
+
+default_gw: '172.131.121.1'
+
+
+###############################################################################
+#
+# NEXUS Nexus nexus NEXUS Nexus nexus
+#
+# If default_pm = trunk, use port_mode 'access' for interfaces which are not
+#       configured as trunk mode
+default_pm: 'trunk'
+# Default Spanning-Tree Port Type
+default_stpt: 'edge trunk'
+# Default Interface Mode layer2/layer3
+default_layer: 'layer2'
+# Default Interface Status True = no shut / False = shut
+default_enabled: 'True'
+
+# Configure global settings on Nexus devices
+global_settings:
+#  - spanning-tree port type network default
+  - spanning-tree port type edge bpduguard default
+  - spanning-tree port type edge bpdufilter default
+#  - no port-channel load-balance src-dst l4port
+  - system default switchport
+  - system default switchport shutdown
+  - snmp-server community public group network-operator
+

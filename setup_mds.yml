@@ -1,0 +1,22 @@
+---
+# FlexPod configuration - Nexus 9000, UCS, MDS, NetApp
+
+#------------------------------------------------------------------------------
+#
+# MDS 9000 configuration Steps
+#
+- hosts: mds*
+  connection: network_cli
+  gather_facts: no
+  tasks:
+     - include_tasks: mds/01-mds-features.yml
+     - include_tasks: mds/02-mds-interfaces.yml
+     - include_tasks: mds/05-mds-vsans.yml
+     - include_tasks: mds/07-mds-da.yml
+     - include_tasks: mds/09-mds-zoneset.yml
+     - include_tasks: mds/10-mds-zoneset-activate.yml
+
+    # After UCS ServiceProfiles are created
+
+     - include_tasks: mds/09-mds-zoneset-ucs.yml
+

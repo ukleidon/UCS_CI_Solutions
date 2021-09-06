@@ -1,0 +1,79 @@
+---
+################################################################################
+#
+# Title:        02-mds-interfaces.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure interfaces on MDS switch
+#
+# Variables:    mgmt_pool_name = Name of the Management IP pool
+#               ucs_org = Name of the Sub-Oganization
+#
+# Modules:      nxos_interfaces
+#               nxos_config
+#               nxos_vsan
+#
+# URLs:         https://galaxy.ansible.com/cisco/mds
+#
+# Built-in help:
+# ansible-doc cisco.mds.nxos_interfaces
+# ansible-doc cisco.mds.nxos_config
+# ansible-doc cisco.mds.nxos_vsan
+#
+################################################################################
+#
+#- hosts: mds*
+#  connection: network_cli
+#  gather_facts: no
+#  tasks:
+
+    - name: Enable port-channel interface
+      nxos_interfaces:
+        config:
+          - name: port-channel {{ mds_port_channel_id }}
+            enabled: yes
+
+    - name: Configure Port-Channel Settings
+      nxos_config:
+        lines:
+          - channel mode active
+          - switchport mode F
+          - switchport speed {{ port_channel_speed }}
+          - switchport rate-mode dedicated
+        parents: interface port-channel {{ mds_port_channel_id }}
+      when: nx_state == 'enabled'
+
+    - name: Configure VSAN on Port-Channel
+      nxos_vsan:
+        vsan:
+          - id: '{{ vsan_id }}'
+            interface:  "port-channel{{ mds_port_channel_id }}"
+            remove: 'False'
+
+    - name: Set MDS Interfaces for UCS
+      nxos_config:
+        lines:
+          - no shutdown
+          - port-license acquire
+          - switchport speed {{ item.speed }}
+          - channel-group {{ mds_port_channel_id }} force
+        parents: interface {{ item.interface }}
+      loop: "{{ ucs_interface_list }}"
+      when: nx_state == 'enabled'
+
+    - name: Set MDS Interfaces for Storage Controllers
+      nxos_config:
+        lines:
+          - no shutdown
+          - port-license acquire
+          - switchport trunk mode off
+          - switchport speed {{ item.speed }}
+        parents: interface {{ item.interface }}
+      loop: "{{ storage_interface_list }}"
+      when: nx_state == 'enabled'
+
+    - name: Delete port-channel interface
+      nxos_config:
+        lines:
+          - no int port-channel {{ mds_port_channel_id }}
+      when: nx_state == 'disabled'

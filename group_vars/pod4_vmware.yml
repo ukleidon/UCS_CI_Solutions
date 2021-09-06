@@ -1,0 +1,476 @@
+---
+
+# file: group_vars/pod4
+
+
+ipmi_access_profile_name: 'ipmi_vmware'
+
+
+
+# Variables File for UCS configuration WDF02-4-POD4 FLEXPOD Solution
+#
+###############################################################################
+#
+# ESX | ESX | ESX | ESX | ESX | ESX | ESX | ESX | ESX | ESX | ESX | ESX | ESX
+#
+###############################################################################
+#
+# Variables for ESXi Configuration
+# Adjust the variable values as per your requirements
+#
+# Uplinks to be used by various Switch Configurations
+#
+mgmt_uplink1: vmnic2
+mgmt_uplink2: vmnic4
+#
+dv_uplink1: vmnic5
+dv_uplink2: vmnic6
+#
+vmotion_uplink1: vmnic7
+vmotion_uplink2: vmnic8
+#
+#
+vmotion_portgroup: "vMotion"
+vmotion_vswitch: "vSwitch1"
+vmotion_mask: 255.255.255.0
+#
+mgmt_portgroup: "Admin"
+#
+default_portgroup: "VM Network"
+#
+nfs_portgroup: "VMKernel-Infra-NFS"
+nfs_mask: 255.255.255.0
+#
+nfs_datastore_list:
+  - mount: 'datastore01'
+    name: 'aff400_datastore01'
+    server: 172.18.2.23
+  - mount: 'aff400_storagegrid'
+    name: 'storagegrid'
+    server: 172.18.2.24
+  - mount: software
+    name: coh1-software
+    server: cohesity1.wdf02-4-dmz.local
+
+vcenter_dc: RACK4
+vcenter_cluster: FlexPod
+#
+#vcenter_hostname: 172.20.0.14
+#vcenter_username: administrator@vsphere.wdf02-4-dmz.local
+#vcenter_password: "SAPhana10!"
+#
+# DVS Parameters
+#
+dvs_name: "App_DVS"
+dv_version: "6.6.0"
+dv_uplink: "2"
+dv_protocol: "lldp"
+dv_operation: "both"
+
+setup_nfs: 'true'
+
+
+
+#------------------------------------------------------------------------------
+# Setup Converged Infrastructure basics ?
+#
+# Define if the day0/day1 configuration of the hardware components like,
+# server ports, uplink ports, DNS server, power policies and others 
+# are configured or not. 
+# In case this parameter is not set to 'true', only the workload specific
+# configuration, like BIOS policy, storage policy, ServiceProfileTemplate
+# are configured. The parameter is NOT used in any working modules, it is 
+# only used in the main playbook file importing other playbooks.
+#setup_ci: 'false'
+
+#------------------------------------------------------------------------------
+# Setup this system for iSCSI or Fibre-Channel connections?
+#
+# setup_local: config the system for local boot only - no iSCSI or FC interfaces
+# setup_iscsi: config the system for iscsi boot - no FC interfaces
+# setup_san: config the system for san boot only - no iscsi interfaces
+setup_local: 'true'
+setup_fc: 'true'
+setup_iscsi: 'false'
+
+#------------------------------------------------------------------------------
+# 08. Create New Org
+# 
+solution_org_name: 'Shop-Floor'
+organization: 'Shop-Floor'
+solution_org_description: "Org for Shop Floor Landscape managed by Ansible"
+solution_org: "org-root/org-{{ organization }}"
+ucs_org: "org-root/org-{{ organization }}"
+
+
+#------------------------------------------------------------------------------
+# 18. Create Server BIOS Policies
+#
+bios_policy_name: 'M5_VMware'
+
+#------------------------------------------------------------------------------
+# 21. Create VLANs for basic UCS / CI Solution.
+#
+# The next list of VLANs is used for VMware on FlexPod.
+# In case VMware will be used on this FlexPod to run SAP workloads,
+# it is recommended to use the Ansible-Automation for VMware on FlexPod first
+# The VLANs are listed in here as reference only
+#
+vm_vlan_name: 'Access'              # VLAN to carry default user traffic
+vm_vlan_id: '180'                   #
+vm_vlan_gw: '172.18.0.1'            #
+vm_vlan_net: '172.18.0.0'           #
+vmotion_vlan_name: 'vMotion'        # vMotion VLAN Name
+vmotion_vlan_id: '183'              #
+vmotion_vlan_gw: '172.18.3.1'       #
+vmotion_vlan_net: '172.18.3.0'      #
+nfs_vlan_name: 'Storage'            # NFS Traffic between Host and Storage
+nfs_vlan_id: '182'                  #
+nfs_vlan_gw: '172.18.2.1'           #
+nfs_vlan_net: '172.18.2.0'          #
+
+#
+# Shop Floor Tenant
+#
+sf1_vlan_name: 'Shop-Floor1'        # VLAN to carry access traffic to Tenant1
+sf1_vlan_id: '184'                  #
+sf1_vlan_gw: '172.18.192.1'         #
+sf1_vlan_net: '172.18.192.0/18'     #
+sf1_stor_vlan_name: 'SF1-Storage'   # VLAN to carry access traffic to Tenant1
+sf1_stor_vlan_id: '1842'            #
+sf1_stor_vlan_gw: '172.18.42.1'     #
+sf1_stor_vlan_net: '172.18.42.0'    #
+sf2_vlan_name: 'Shop-Floor2'        # VLAN to carry access traffic to Tenant1
+sf2_vlan_id: '185'                  #
+sf2_vlan_gw: '172.18.5.1'           #
+sf2_vlan_net: '172.18.5.0'          #
+sf2_stor_vlan_name: 'SF2-Storage'   # VLAN to carry access traffic to Tenant1
+sf2_stor_vlan_id: '1852'            #
+sf2_stor_vlan_gw: '172.18.52.1'     #
+sf2_stor_vlan_net: '172.18.52.0'    #
+
+#
+# Shop Floor Tenant
+#
+storage_grid_name: 'StorageGrid-LAN'
+storage_grid_id: '1822'
+storage_grid_gw: '172.18.22.1'
+storage_grid_net: '172.18.22.0'
+
+
+#------------------------------------------------------------------------------
+# 25. Create vNIC Templates
+# 
+
+vnic_template_list:
+  - name: 'Management'
+    fabric: 'A-B'
+    mac_pool: "{{ mac_pool_list[0].name }}"
+    vlans: 
+      - name: "{{ native_vlan_name }}"
+        native: 'yes'
+      - name: "{{ oob_vlan_name }}"
+    template_type: 'updating-template'
+    network_control_policy: "{{ NCP_name }}"
+    adapter_policy: 'vmware'
+    order: '1'
+
+
+  - name: 'vSwitch0-A'
+    fabric: 'A'
+    mac_pool: "{{ mac_pool_list[0].name }}"
+    mtu: '1500'
+    qos_policy: ''
+    target: 'adapter'
+    network_control_policy: "{{ NCP_name }}"
+    redundant_peer: 'vSwitch0-B'
+    redundancy_type: 'primary'
+    template_type: 'updating-template'
+    vlans: 
+#      - name: "{{ native_vlan_name }}"
+#        native: 'yes'
+      - name: "{{ oob_vlan_name }}"
+      - name: "{{ nfs_vlan_name }}"
+    adapter_policy: 'VMWare'
+    order: '2'
+
+  - name: 'vSwitch0-B'
+    fabric: 'B'
+    mac_pool: "{{ mac_pool_list[1].name }}"
+    mtu: '1500'
+    qos_policy: ''
+    target: 'adapter'
+    network_control_policy: "{{ NCP_name }}"
+    redundant_peer: 'vSwitch0-A'
+    redundancy_type: 'secondary'
+    template_type: 'updating-template'
+    vlans: 
+      - name: "{{ native_vlan_name }}"
+        native: 'yes'
+      - name: "{{ oob_vlan_name }}"
+      - name: "{{ nfs_vlan_name }}"
+    adapter_policy: 'VMWare'
+    order: '3'
+
+  - name: 'VDS-A'
+    fabric: 'A'
+    mac_pool: "{{ mac_pool_list[0].name }}"
+    mtu: '9000'
+    qos_policy: ''
+    target: 'adapter'
+    network_control_policy: "{{ NCP_name }}"
+    redundant_peer: 'VDS-B'
+    redundancy_type: 'primary'
+    template_type: 'updating-template'
+    vlans: 
+      - name: "{{ vm_vlan_name }}"
+      - name: "{{ sf1_stor_vlan_name }}"
+      - name: "{{ sf2_stor_vlan_name }}"
+      - name: "{{ sf1_vlan_name }}"
+      - name: "{{ sf2_vlan_name }}"
+      - name: "{{ storage_grid_name }}"
+    adapter_policy: 'VMWare'
+    order: '4'
+
+  - name: 'VDS-B'
+    fabric: 'B'
+    mac_pool: "{{ mac_pool_list[1].name }}"
+    mtu: '9000'
+    qos_policy: ''
+    target: 'adapter'
+    network_control_policy: "{{ NCP_name }}"
+    redundant_peer: 'VDS-A'
+    redundancy_type: 'secondary'
+    template_type: 'updating-template'
+    vlans: 
+      - name: "{{ vm_vlan_name }}"
+      - name: "{{ sf1_stor_vlan_name }}"
+      - name: "{{ sf2_stor_vlan_name }}"
+      - name: "{{ sf1_vlan_name }}"
+      - name: "{{ sf2_vlan_name }}"
+      - name: "{{ storage_grid_name }}"
+    adapter_policy: 'VMWare'
+    order: '5'
+
+  - name: 'vMotion-A'
+    fabric: 'A'
+    mac_pool: "{{ mac_pool_list[0].name }}"
+    mtu: '9000'
+    qos_policy: ''
+    target: 'adapter'
+    network_control_policy: "{{ NCP_name }}"
+    redundant_peer: 'vMotion-B'
+    redundancy_type: 'primary'
+    template_type: 'updating-template'
+    vlans: 
+      - name: "{{ vmotion_vlan_name }}"
+    adapter_policy: 'VMWare'
+    order: '6'
+
+  - name: 'vMotion-B'
+    fabric: 'B'
+    mac_pool: "{{ mac_pool_list[1].name }}"
+    mtu: '9000'
+    qos_policy: ''
+    target: 'adapter'
+    network_control_policy: "{{ NCP_name }}"
+    redundant_peer: 'vMotion-A'
+    redundancy_type: 'secondary'
+    template_type: 'updating-template'
+    vlans: 
+      - name: "{{ vmotion_vlan_name }}"
+    adapter_policy: 'VMWare'
+    order: '7'
+
+
+#------------------------------------------------------------------------------
+# 27. Create LAN Connectivity Policy  
+lan_connnect_policy_name: iSCSI-LCP
+iscsi_lan_conn_policy: iSCSI-LCP
+fc_lan_conn_policy: FibreChannel-LCP
+#
+
+#------------------------------------------------------------------------------
+# 30. Server Pools
+# Server Pool Policy Qualification is not implemented. 
+# SAP HANA capable server must be listed here to add them into an Server Pool
+
+server_pool_name: 'Shop-Floor'
+rack_list:
+  - id: '1'
+  - id: '2'
+  - id: '3'
+
+
+#------------------------------------------------------------------------------
+# 31. SAN Connection Policy
+#
+san_policy_name: 'FC-Boot'
+
+san_policy_vhba_a_name: 'Fabric-A'
+san_policy_vhba_b_name: 'Fabric-B'
+
+vhba_a_name: 'vHBA-A'
+vhba_b_name: 'vHBA-B'
+
+wwnn_pool_name: "{{ wwn_pool_list[0].name }}"
+
+
+
+#------------------------------------------------------------------------------
+# 36. vHBA Template
+vhba_list:
+  - name: "{{ vhba_a_name}}"
+    fabric: 'A'
+    vsan: "{{ vsan_list[0].name }}"
+    wwpn_pool: "{{ wwn_pool_list[1].name }}"
+    type: "updating-template"
+  - name: "{{ vhba_b_name }}"
+    fabric: 'B'
+    vsan: "{{ vsan_list[1].name }}"
+    wwpn_pool: "{{ wwn_pool_list[2].name }}"
+    type: "updating-template"
+
+
+#------------------------------------------------------------------------------
+# 28. Configure vMedia Policies
+vmedia_list:
+  - name: 'RHEL8_2'
+    device_type: 'cdd'
+    file_name: 'rhel-8.2-x86_64-boot.iso'
+    file_path: 'software_data1_1/Redhat'
+    mapping_name: 'RHEL8_2'
+    mount_proto: 'nfs'
+    remote_ip: '172.20.2.10'
+    ks_device_type: 'hdd'
+    ks_image_type: 'service-profile-name'
+#    ks_image_name: 'boot.img'
+    ks_file_path: 'software_data1_1/Redhat'
+    ks_mapping_name: 'KS'
+    ks_mount_proto: 'nfs'
+    ks_remote_ip: '172.20.2.10'
+
+  - name: 'ESX_6_7'
+    device_type: 'cdd'
+    file_name: 'VMware_ESXi_6.7.0_14320388_Custom_Cisco_6.7.3.1.iso'
+    file_path: 'software_data1_1/VMware'
+    mapping_name: 'ESX_6_7'
+    mount_proto: 'nfs'
+    remote_ip: '172.20.2.10'
+    ks_device_type: 'hdd'
+    ks_image_type: 'service-profile-name'
+#    ks_image_name: 'boot.img'
+    ks_file_path: 'software_data1_1/VMware'
+    ks_mapping_name: 'KS'
+    ks_mount_proto: 'nfs'
+    ks_remote_ip: '172.20.2.10'
+
+
+#------------------------------------------------------------------------------
+# 39. Create Boot Policy  
+# vd0_boot
+local_boot_policy_name: 'Local-Boot'
+vd0_boot_policy_name: 'VD0-Boot'
+iscsi_boot_policy_name: 'iSCSI-Boot'
+fc_boot_policy_name: 'FC-Boot'
+
+enforce_vnic_name: 'yes'
+reboot_on_update: 'no'
+# UEFI Settings
+boot_mode: 'uefi'
+secure_boot: 'yes'
+boot_loader_path: '\\EFI\\BOOT\\'
+boot_loader_name: 'BOOTX64.EFI'
+
+
+#------------------------------------------------------------------------------
+# 51. Service Profile Template Name
+SPT_list:
+  - name: 'VMware-FC'
+    bios_policy_name: "{{ bios_policy_name }}"
+    boot_policy: "{{ fc_boot_policy_name }}"
+    description: 'SPT for VMware ESXi with FC Boot'
+    iqn_pool: "{{ iqn_pool_name |default(omit) }}"
+    LCP_name: "{{ lan_connnect_policy_name |default(omit) }}"
+    local_disk_policy: 'IgnoreDisk'
+    maint_policy: 'User-ack'
+    mgmt_ip_pool: "{{ mgmt_pool_name |default(omit) }}"
+    power_policy: 'default'
+    SCP_name: "{{ san_policy_name |default(omit) }}"
+    server_pool: "{{ server_pool_name }}"
+    sol_policy: "{{ ucs_sol_name |default(omit) }}"
+    type: 'updating-template'
+    uuid_pool: "{{ uuid_pool_name |default(omit) }}"
+    vmedia_policy: "{{ vmedia_list[0].name |default(omit) }}"
+    storage_profile: "{{ lun_list[2].name |default(omit) }}"
+    scrub_policy: "{{ scrub_list[0].name |default(omit) }}"
+# Optional Parameters
+    kvm_mgmt_policy: "{{ kvm_mgmt_policy_name |default(omit) }}"
+#    mgmt_interface_mode: 'in-band'
+    mgmt_inband_pool_name: "{{ ib_mgmt_ip_pool |default(omit) }}"
+    mgmt_vnet_name: "{{ oob_vlan_name |default(omit) }}"
+    host_firmware_package: "{{ fp_host_fw_name |default(omit) }}"
+    ipmi_access_profile: "{{ ipmi_access_profile_name |default(omit) }}"
+
+
+#------------------------------------------------------------------------------
+# 50. Create Service Profile from template  
+service_profile_list:
+  - name: 'Shopfloor-ESX-01'
+    sp_template: "{{ SPT_list[0].name }}"
+    host_name: "esx01.flexpod.wdf02-4-dmz.local"
+  - name: 'Shopfloor-ESX-02'
+    sp_template: "{{ SPT_list[0].name }}"
+    host_name: "esx02.flexpod.wdf02-4-dmz.local"
+  - name: 'Shopfloor-ESX-03'
+    sp_template: "{{ SPT_list[0].name }}"
+    host_name: "esx03.flexpod.wdf02-4-dmz.local"
+  - name: 'Shopfloor-ESX-04'
+    sp_template: "{{ SPT_list[0].name }}"
+    host_name: "esx04.flexpod.wdf02-4-dmz.local"
+
+# ----------------------------------------------------------------------------l
+# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# ###########################################################
+# #       DO NOT CHANGE ANY PARAMETER BELOW THIS POINT      #
+# ###########################################################
+# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+
+# BIOS settings for SAP HANA server as tested and certified
+# 
+# 18. Configure BIOS Policy for SAP HANA based on this settings:
+bios_setting_list:
+    - name: 'Enable CDN Control'
+      mo_token: 'tokn-featr-Consistent Device Name Control/tokn-param-cdnEnable'
+      mo_setting: 'Enabled'
+    - name: 'Disable Quiet Boot'
+      mo_token: 'tokn-featr-Quiet Boot/tokn-param-QuietBoot'
+      mo_setting: 'Disabled'
+    - name: 'DRAM Clock Throttling - Performance'
+      mo_token: 'tokn-featr-DRAM Clock Throttling/tokn-param-DRAMClockThrottling'
+      mo_setting: 'Performance'
+    - name: 'Frequency Floor Override - Enabled'
+      mo_token: 'tokn-featr-Frequency Floor Override/tokn-param-CpuFreqFloor'
+      mo_setting: 'Enabled'
+    - name: 'Processor C state - Disabled'
+      mo_token: 'tokn-featr-Processor C State/tokn-param-ProcessorCstate'
+      mo_setting: 'Disabled'
+    - name: 'Processor C1E - Disabled'
+      mo_token: 'tokn-featr-Processor C1E/tokn-param-ProcessorC1E'
+      mo_setting: 'Disabled'
+    - name: 'Processor C3 Report - Disabled'
+      mo_token: 'tokn-featr-Processor C3 Report/tokn-param-ProcessorC3Report'
+      mo_setting: 'Disabled'
+    - name: 'Processor C7 Report - Disabled'
+      mo_token: 'tokn-featr-Processor C7 Report/tokn-param-ProcessorC7Report'
+      mo_setting: 'Disabled'
+    - name: 'Processor Energy Configuration - Performance'
+      mo_token: 'tokn-featr-Processor Energy Configuration/tokn-param-CpuEngPerfBias'
+      mo_setting: 'Performance'
+    - name: 'LV DDR Mode - Performance-Mode'
+      mo_token: 'tokn-featr-LvDIMM Support/tokn-param-LvDDRMode'
+      mo_setting: 'Performance-Mode'
+

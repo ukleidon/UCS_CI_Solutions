@@ -1,0 +1,438 @@
+
+ontap_cluster:
+  nodes:
+    - name: "FAS8040-01"
+    - name: "FAS8040-02"
+  aggregates:
+    - name: "aggr0_FAS8040_01"
+    - name: "aggr0_FAS8040_02"
+  dns_domains:
+   - "flexpod.wdf02-4-dmz.local"
+  name_servers:
+   - "172.20.0.50"
+   - "172.20.0.51"
+
+#nfs_ports:
+#  - "a0a"
+#nfs_vlans:
+#  - 185
+#  - 186
+#  - 187
+#dns_domains:
+#  - "wdf02-4-dmz.local"
+#dns_servers:
+#  - "172.20.0.50"
+#  - "172.20.0.51"
+#pri_node: "wdf02-filer-node02"
+#pri_aggr: "aggr_node02"
+#sf_svm_name: "sf_svm_test"
+#sf_nfs_lif_address: "172.20.2.200"
+#sf_nfs_lif_netmask: "255.255.255.0"
+#sf_nfs_vol_size: "107374182400"
+#sf_nfs_vol_size_unit: "b"
+
+svm_list:
+  - name: 'pod4_fc_svm'
+    cluster_nodes: "{{ ontap_cluster.nodes }}"
+    pri_node: "{{ ontap_cluster.nodes[0] }}"
+    sec_node: "{{ ontap_cluster.nodes[1] }}"
+    pri_aggr: "{{ ontap_cluster.aggregates[0] }}"
+    ipspace: "Default"
+    network:
+      - name: 'admin'
+        vlan: "181"
+        port: "a0a"
+        ip_address: "172.18.1.15"
+        ip_netmask: "255.255.255.0"
+        node: "{{ pri_node }}"
+        service_policy: "default-management"
+    san:
+      - name: pod4_node1_lif0
+        port: 0f
+      - name: pod4_node1_lif1
+        port: 0h
+      - name: pod4_node2_lif0
+        port: 0f
+      - name: pod4_node2_lif1
+        port: 0h
+    storage:
+      - name: 'esx01_lun'
+        proto: 'fc'
+        size: "10737418240"
+        size_unit: "b"
+      - name: 'esx02_lun'
+        proto: 'fc'
+        size: "10737418240"
+        size_unit: "b"
+
+  - name: 'pod4_iscsi_svm'
+    cluster_nodes: "{{ ontap_cluster.nodes }}"
+    pri_node: "{{ ontap_cluster.nodes[0] }}"
+    sec_node: "{{ ontap_cluster.nodes[1] }}"
+    pri_aggr: "{{ ontap_cluster.aggregates[0] }}"
+    ipspace: "Default"
+    network:
+      - name: 'admin'
+        vlan: "181"
+        port: "a0a"
+        ip_address: "172.18.1.15"
+        ip_netmask: "255.255.255.0"
+        node: "{{ pri_node }}"
+        service_policy: "default-management"
+      - name: 'iscsi_a_network_01'
+        vlan: "186"
+        port: "a0a"
+        ip_address: "172.18.6.10"
+        ip_netmask: "255.255.255.0"
+        node: "{{ pri_node }}"
+        service_policy: "default-data-blocks"
+      - name: 'iscsi_b_network_01'
+        vlan: "187"
+        port: "a0a"
+        ip_address: "172.18.7.10"
+        ip_netmask: "255.255.255.0"
+        node: "{{ pri_node }}"
+        service_policy: "default-data-blocks"
+### TO BE ADDED #########################
+#        - name: 'iscsi_a_network_02'
+#        vlan: "186"
+#        port: "a0a"
+#        ip_address: "172.18.6.xxx"
+#        ip_netmask: "255.255.255.0"
+#        node: "{{ sec_node }}"
+#        service_policy: "default-data-blocks"
+#      - name: 'iscsi_b_network_02'
+#        vlan: "187"
+#        port: "a0a"
+#        ip_address: "172.18.7.xxx"
+#        ip_netmask: "255.255.255.0"
+#        node: "{{ sec_node }}"
+#        service_policy: "default-data-blocks"
+#########################################
+    storage:
+      - name: 'esx01_lun'
+        proto: 'iscsi'
+        size: "10737418240"
+        size_unit: "b"
+      - name: 'esx02_lun'
+        proto: 'iscsi'
+        size: "10737418240"
+        size_unit: "b"
+
+  - name: 'pod4_nfs_svm'
+    pri_node: "{{ ontap_cluster.nodes[1] }}"
+    sec_node: "{{ ontap_cluster.nodes[0] }}"
+    pri_aggr: "{{ ontap_cluster.aggregates[1] }}"
+    ipspace: "Default"
+    network:
+      - name: 'admin'
+        vlan: "181"
+        port: "a0a"
+        ip_address: "172.18.1.11"
+        ip_netmask: "255.255.255.0"
+        node: "{{ pri_node }}"
+        service_policy: "default-management"
+      - name: 'nfs_network'
+        vlan: "182"
+        port: "a0a"
+        ip_address: "172.18.2.10"
+        ip_netmask: "255.255.255.0"
+        node: "{{ pri_node }}"
+        service_policy: "default-data-files"
+    storage:
+      - name: 'pod4_datastore'
+        proto: 'nfs'
+        size: "107374182400"
+        size_unit: "b"
+      - name: 'pod4_swap'
+        proto: 'nfs'
+        size: "107374182400"
+        size_unit: "b"
+####
+# SAP HANA use-case
+#  - name: 'hana_iscsi_svm'
+#    pri_node: "wdf02-filer-node01"
+#    sec_node: "wdf02-filer-node02"
+#    pri_aggr: "aggr_node01"
+#    ipspace: "Default"
+#    network:
+#      - name: 'admin'
+#        vlan: "181"
+#        port: "a0a"
+#        ip_address: "172.18.1.10"
+#        ip_netmask: "255.255.255.0"
+#        node: "{{ pri_node }}"
+#        service_policy: "default-management"
+#      - name: 'iscsi_a_network'
+#        vlan: "186"
+#        port: "a0a"
+#        ip_address: "172.18.6.10"
+#        ip_netmask: "255.255.255.0"
+#        node: "{{ pri_node }}"
+#        service_policy: "default-data-blocks"
+#      - name: 'iscsi_b_network'
+#        vlan: "187"
+#        port: "a0a"
+#        ip_address: "172.18.7.10"
+#        ip_netmask: "255.255.255.0"
+#        node: "{{ pri_node }}"
+#        service_policy: "default-data-blocks"
+#### TO BE ADDED #########################
+##        - name: 'iscsi_a_network_02'
+##        vlan: "186"
+##        port: "a0a"
+##        ip_address: "172.18.6.xxx"
+##        ip_netmask: "255.255.255.0"
+##        node: "{{ sec_node }}"
+##        service_policy: "default-data-blocks"
+##      - name: 'iscsi_b_network_02'
+##        vlan: "187"
+##        port: "a0a"
+##        ip_address: "172.18.7.xxx"
+##        ip_netmask: "255.255.255.0"
+##        node: "{{ sec_node }}"
+##        service_policy: "default-data-blocks"
+##########################################
+#    storage:
+#      - name: 'hana01_lun'
+#        proto: 'iscsi'
+#        size: "10737418240"
+#        size_unit: "b"
+#      - name: 'hana02_lun'
+#        proto: 'iscsi'
+#        size: "10737418240"
+#        size_unit: "b"
+#      - name: 'hana03_lun'
+#        proto: 'iscsi'
+#        size: "10737418240"
+#        size_unit: "b"
+#      - name: 'hana04_lun'
+#        proto: 'iscsi'
+#        size: "10737418240"
+#        size_unit: "b"
+#  - name: 'hana_shared'
+#    pri_node: "wdf02-filer-node02"
+#    sec_node: "wdf02-filer-node01"
+#    pri_aggr: "aggr_node02"
+#    ipspace: "Default"
+#    network:
+#      - name: 'admin'
+#        vlan: "181"
+#        port: "a0a"
+#        ip_address: "172.18.1.11"
+#        ip_netmask: "255.255.255.0"
+#        node: "{{ pri_node }}"
+#        service_policy: "default-management"
+#      - name: 'nfs_network'
+#        vlan: "182"
+#        port: "a0a"
+#        ip_address: "172.18.2.10"
+#        ip_netmask: "255.255.255.0"
+#        node: "{{ pri_node }}"
+#        service_policy: "default-data-files"
+#    storage:
+#      - name: 'hana_shared'
+#        proto: 'nfs'
+#        size: "107374182400"
+#        size_unit: "b"
+#  - name: 'hana01_data'
+#    pri_node: "wdf02-filer-node01"
+#    sec_node: "wdf02-filer-node02"
+#    pri_aggr: "aggr_node01"
+#    ipspace: "Default"
+#    network:
+#      - name: 'admin'
+#        vlan: "181"
+#        port: "a0a"
+#        ip_address: "172.18.1.12"
+#        ip_netmask: "255.255.255.0"
+#        node: "{{ pri_node }}"
+#        service_policy: "default-management"
+#      - name: 'hana_data_lan'
+#        vlan: "1820"
+#        port: "a0a"
+#        ip_address: "172.18.20.10"
+#        ip_netmask: "255.255.255.0"
+#        node: "{{ pri_node }}"
+#        service_policy: "default-data-files"
+#    storage:
+#      - name: 'hana01_data'
+#        proto: 'nfs'
+#        size: "107374182400"
+#        size_unit: "b"
+#  - name: 'hana01_log'
+#    pri_node: "wdf02-filer-node02"
+#    sec_node: "wdf02-filer-node01"
+#    pri_aggr: "aggr_node02"
+#    ipspace: "Default"
+#    network:
+#      - name: 'admin'
+#        vlan: "181"
+#        port: "a0a"
+#        ip_address: "172.18.1.13"
+#        ip_netmask: "255.255.255.0"
+#        node: "{{ pri_node }}"
+#        service_policy: "default-management"
+#      - name: 'hana_data_lan'
+#        vlan: "1821"
+#        port: "a0a"
+#        ip_address: "172.18.21.10"
+#        ip_netmask: "255.255.255.0"
+#        node: "{{ pri_node }}"
+#        service_policy: "default-data-files"
+#    storage:
+#      - name: 'hana01_log'
+#        proto: 'nfs'
+#        size: "10737418240"
+#        size_unit: "b"
+#  - name: 'hana02_data'
+#    pri_node: "wdf02-filer-node02"
+#    sec_node: "wdf02-filer-node01"
+#    pri_aggr: "aggr_node02"
+#    ipspace: "Default"
+#    network:
+#      - name: 'admin'
+#        vlan: "181"
+#        port: "a0a"
+#        ip_address: "172.18.1.14"
+#        ip_netmask: "255.255.255.0"
+#        node: "{{ pri_node }}"
+#        service_policy: "default-management"
+#      - name: 'hana_data_lan'
+#        vlan: "1820"
+#        port: "a0a"
+#        ip_address: "172.18.20.11"
+#        ip_netmask: "255.255.255.0"
+#        node: "{{ pri_node }}"
+#        service_policy: "default-data-files"
+#    storage:
+#      - name: 'hana02_data'
+#        proto: 'nfs'
+#        size: "107374182400"
+#        size_unit: "b"
+#  - name: 'hana02_log'
+#    pri_node: "wdf02-filer-node01"
+#    sec_node: "wdf02-filer-node02"
+#    pri_aggr: "aggr_node01"
+#    ipspace: "Default"
+#    network:
+#      - name: 'admin'
+#        vlan: "181"
+#        port: "a0a"
+#        ip_address: "172.18.1.15"
+#        ip_netmask: "255.255.255.0"
+#        node: "{{ pri_node }}"
+#        service_policy: "default-management"
+#      - name: 'hana_data_lan'
+#        vlan: "1821"
+#        port: "a0a"
+#        ip_address: "172.18.21.11"
+#        ip_netmask: "255.255.255.0"
+#        node: "{{ pri_node }}"
+#        service_policy: "default-data-files"
+#    storage:
+#      - name: 'hana02_log'
+#        proto: 'nfs'
+#        size: "10737418240"
+#        size_unit: "b"
+#  - name: 'hana03_data'
+#    pri_node: "wdf02-filer-node01"
+#    sec_node: "wdf02-filer-node02"
+#    pri_aggr: "aggr_node01"
+#    ipspace: "Default"
+#    network:
+#      - name: 'admin'
+#        vlan: "181"
+#        port: "a0a"
+#        ip_address: "172.18.1.16"
+#        ip_netmask: "255.255.255.0"
+#        node: "{{ pri_node }}"
+#        service_policy: "default-management"
+#      - name: 'hana_data_lan'
+#        vlan: "1820"
+#        port: "a0a"
+#        ip_address: "172.18.20.12"
+#        ip_netmask: "255.255.255.0"
+#        node: "{{ pri_node }}"
+#        service_policy: "default-data-files"
+#    storage:
+#      - name: 'hana03_data'
+#        proto: 'nfs'
+#        size: "107374182400"
+#        size_unit: "b"
+#  - name: 'hana03_log'
+#    pri_node: "wdf02-filer-node02"
+#    sec_node: "wdf02-filer-node01"
+#    pri_aggr: "aggr_node02"
+#    ipspace: "Default"
+#    network:
+#      - name: 'admin'
+#        vlan: "181"
+#        port: "a0a"
+#        ip_address: "172.18.1.17"
+#        ip_netmask: "255.255.255.0"
+#        node: "{{ pri_node }}"
+#        service_policy: "default-management"
+#      - name: 'hana_data_lan'
+#        vlan: "1821"
+#        port: "a0a"
+#        ip_address: "172.18.21.12"
+#        ip_netmask: "255.255.255.0"
+#        node: "{{ pri_node }}"
+#        service_policy: "default-data-files"
+#    storage:
+#      - name: 'hana03_log'
+#        proto: 'nfs'
+#        size: "10737418240"
+#        size_unit: "b"
+#  - name: 'hana04_data'
+#    pri_node: "wdf02-filer-node02"
+#    sec_node: "wdf02-filer-node01"
+#    pri_aggr: "aggr_node02"
+#    ipspace: "Default"
+#    network:
+#      - name: 'admin'
+#        vlan: "181"
+#        port: "a0a"
+#        ip_address: "172.18.1.18"
+#        ip_netmask: "255.255.255.0"
+#        node: "{{ pri_node }}"
+#        service_policy: "default-management"
+#      - name: 'hana_data_lan'
+#        vlan: "1820"
+#        port: "a0a"
+#        ip_address: "172.18.20.13"
+#        ip_netmask: "255.255.255.0"
+#        node: "{{ pri_node }}"
+#        service_policy: "default-data-files"
+#    storage:
+#      - name: 'hana04_data'
+#        proto: 'nfs'
+#        size: "107374182400"
+#        size_unit: "b"
+#  - name: 'hana04_log'
+#    pri_node: "wdf02-filer-node01"
+#    sec_node: "wdf02-filer-node02"
+#    pri_aggr: "aggr_node01"
+#    ipspace: "Default"
+#    network:
+#      - name: 'admin'
+#        vlan: "181"
+#        port: "a0a"
+#        ip_address: "172.18.1.19"
+#        ip_netmask: "255.255.255.0"
+#        node: "{{ pri_node }}"
+#        service_policy: "default-management"
+#      - name: 'hana_data_lan'
+#        vlan: "1821"
+#        port: "a0a"
+#        ip_address: "172.18.21.13"
+#        ip_netmask: "255.255.255.0"
+#        node: "{{ pri_node }}"
+#        service_policy: "default-data-files"
+#    storage:
+#      - name: 'hana04_log'
+#        proto: 'nfs'
+#        size: "10737418240"
+#        size_unit: "b"
+#

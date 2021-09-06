@@ -1,0 +1,37 @@
+---
+################################################################################
+#
+# Title:        19-configure-vlan-interface.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure VLAN interfaces to support L3 on TOR switches
+#
+# Variables:    
+#
+#              
+# Modules:      
+#
+# URLs:         https://galaxy.ansible.com/cisco/nxos
+#               https://developer.cisco.com/
+#
+# Built-in help:
+# ansible-doc cisco.nxos.
+#
+################################################################################
+#
+#
+#- hosts: nexus_tor* n5k_tor*
+#  connection: network_cli
+#  gather_facts: no
+#  tasks:
+   - name: 19 Configure VLAN Interfaces to support L3 and routing
+     nxos_config:
+       lines:
+         - ip address {{ item.ip }}/{{ item.net.split('/')[1] |default(default_mask)}}
+         - no shut
+       parents: interface vlan{{item.id}}
+     when: item.ip is defined
+     loop: "{{ vlan_list }}"
+     loop_control:
+       label: "PC: {{ item.name }}, VPC IP: {{ item.ip|default(default_ip) }}"
+

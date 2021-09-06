@@ -1,0 +1,93 @@
+---
+################################################################################
+#
+# Title:        03-create-vlan-list.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Defines variables consisting only the list of VLAN IDs.
+#               This play takes the list of VLAN from the variable files and
+#		adds the VLAN ID to a comma seppareated list which is used to
+#		configure interfaces and port-channels on NXOS devices
+#		with the list of VLANs.
+#
+# Variables:    mgmt_vlans = comma-separated list of management VLAN IDs 
+#		management_vlan_list = List of vMotion related VLANs with name and ID
+#  		storage_vlans = comma-separated list of storage VLAN IDs 
+#		storage_vlan_list = List of vMotion related VLANs with name and ID
+#               access_vlans = comma-separated list of access VLAN IDs
+#		access_vlan_list = List of vMotion related VLANs with name and ID
+#               vmotion_vlans = comma-separated list of vmotion VLAN IDs
+#		vmotion_vlan_list = List of vMotion related VLANs with name and ID
+#
+# Modules:      set_facts
+#
+#
+# Built-in help:
+# ansible-doc 
+#
+################################################################################
+#
+#
+#- hosts: nexus* n5k*
+#  connection: network_cli
+#  gather_facts: no
+#  tasks:
+    - name: 10 Set Facts
+      set_fact:
+        mgmt_vlans: ','
+        storage_vlans: ','
+        access_vlans: ','
+        vmotion_vlans: ','
+
+    - name: 10 Create vmotion_vlan list
+      set_fact:
+        vmotion_vlans: "{{ item.id + ',' + vmotion_vlans| regex_replace(',,',) }}"
+      when: vmotion_vlan_list is defined
+      loop: "{{ vmotion_vlan_list }}"
+      loop_control:
+          label: "VLAN_ID: {{ item.id }}"
+
+    - name: 10 Create storage_vlan list
+      set_fact:
+        storage_vlans: "{{ item.id + ',' + storage_vlans| regex_replace(',,',) }}"
+      when: storage_vlan_list is defined
+      loop: "{{ storage_vlan_list }}"
+      loop_control:
+          label: "VLAN_ID: {{ item.id }}"
+
+    - name: 10 Create mgmt_vlan list
+      set_fact:
+        mgmt_vlans: "{{ item.id + ',' + mgmt_vlans| regex_replace(',,',) }}"
+      when: item.native is not defined
+      loop: "{{ mgmt_vlan_list }}"
+      loop_control:
+          label: "VLAN_ID: {{ item.id }}"
+
+    - name: 10 Create access_vlan list
+      set_fact:
+        access_vlans: "{{ item.id + ',' + access_vlans| regex_replace(',,',) }}"
+        storage_vlans: "{{ storage_vlans| regex_replace(',,',) }}"
+        mgmt_vlans: "{{ mgmt_vlans| regex_replace(',,',) }}"
+      when: item.native is not defined and access_vlan_list is defined
+      loop: "{{ access_vlan_list }}"
+      loop_control:
+          label: "VLAN_ID: {{ item.id }}"
+
+    # This task replace the vlan_list from var file with vlans string from
+    # this module as the Nexus switch requires the VLAN IDs as string.
+    - name: 
+      set_fact:
+        port_mode: "{{ port_mode | default(default_pm)  }}"
+        all_vlans: "{{ mgmt_vlans + ',' + access_vlans + ',' + storage_vlans + ',' + vmotion_vlans | regex_replace(',,',) }}"
+
+    - name: Clean Up VLAN lists
+      set_fact:
+        all_vlans: "{{ all_vlans | regex_replace(',,',) }}"
+        mgmt_vlans: "{{ mgmt_vlans | regex_replace(',,',) }}"
+        storage_vlans: "{{ storage_vlans | regex_replace(',,',) }}"
+        access_vlans: "{{ access_vlans | regex_replace(',,',) }}"
+        vmotion_vlans: "{{ vmotion_vlans | regex_replace(',,',) }}"
+
+    - name: print
+      debug:
+        msg: "'All:'{{ all_vlans }} 'Mgmt:' {{ mgmt_vlans }} 'Stor:' {{ storage_vlans }} 'Acc:'{{ access_vlans }} 'Vmo:' {{ vmotion_vlans }} }}"

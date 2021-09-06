@@ -1,0 +1,30 @@
+---
+################################################################################
+#
+# Title:        00-backup-config.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Backup NXOS device configuration to the local system
+#
+# Variables:    backup_dir = Name of directory on the local filesystem to store the backup
+#
+# Modules:      nxos_config
+#
+# URLs:         https://galaxy.ansible.com/cisco/nxos
+#               https://developer.cisco.com/
+#
+# Built-in help:
+# ansible-doc cisco.nxos.nxos_config
+#
+################################################################################
+#
+#
+#- hosts: nexus* n5k* 
+#  connection: network_cli
+#  gather_facts: no
+#  tasks:
+    - name: 00 Backup current nexus configuration to local system
+      nxos_config:
+        backup: yes
+        backup_options:
+          dir_path: "{{ backup_dir }}"

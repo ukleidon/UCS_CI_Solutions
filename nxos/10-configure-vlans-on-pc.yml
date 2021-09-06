@@ -1,0 +1,51 @@
+---
+################################################################################
+#
+# Title:        10-configure-vlans-on-pc.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure VLANs on defined Port-Channels
+#
+# Variables:    all_port_channels = List of all Port-Channel to configure
+#
+# Modules:      nxos_l2_interfaces
+#		nxos_config
+#
+# URLs:         https://galaxy.ansible.com/cisco/nxos
+#               https://developer.cisco.com/
+#
+# Built-in help:
+# ansible-doc cisco.nxos.nxos_l2_interfaces
+# ansible-doc cisco.nxos.nxos_config
+#
+################################################################################
+#
+#- hosts: nexus* n5k*
+#  connection: network_cli
+#  gather_facts: no
+#  tasks:
+  # This task configues the VLANs on the trunk ports
+    - name: 10 Configure VLANS on port-channels
+      nxos_l2_interfaces:
+        config:
+          - name: "{{ item.interface }}"
+            trunk: 
+              native_vlan: "{{ native_vlan_id }}"
+              allowed_vlans: "{{ item.vlans }}"
+        state: 'replaced'
+      loop: "{{ all_port_channels }}"
+      when: item.port_mode == 'trunk' and state == 'present'
+      loop_control:
+          label: "PC: {{ item.interface }}, VLANs: {{ item.vlans }}"
+
+  # This task configues the VLANs on the trunk ports
+    - name: 10 Remove VLANS from ports and port-channels
+      nxos_config:
+        lines:
+          - switchport trunk allowed vlan remove {{ item.vlans }}
+        parents: interface {{ item.interface }}
+      when: port_mode == 'trunk' or port_mode is not defined 
+      loop: "{{ all_port_channels }}"
+      when: item.port_mode == 'trunk' and state == 'absent'
+      loop_control:
+          label: "PC: {{ item.interface }}, VLANs: {{ item.vlans }}"

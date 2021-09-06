@@ -1,0 +1,179 @@
+---
+# FlexPod configuration - Nexus 9000, UCS, MDS, NetApp
+#
+#------------------------------------------------------------------------------
+#
+# Netapp host configuration steps
+#
+#- import_playbook: ntap/01_get_cluster_details.yml
+#- import_playbook: ntap/02_get_svm_details.yml
+#- import_playbook: ntap/03_get_filesystem_details.yml
+#- import_playbook: ntap/13_create_vlandata_pri_clu.yml
+#- import_playbook: ntap/15_create_bcdomaindata_pri_clu.yml
+#- import_playbook: ntap/21_create_pri_svm.yml
+#- import_playbook: ntap/23_create_dns_pri_svm.yml
+#- import_playbook: ntap/25_create_nfslif_pri_svm.yml
+#- import_playbook: ntap/26_create_nfs_pri_svm.yml
+#- import_playbook: ntap/27_create_qospolicy_pri_svm.yml
+#- import_playbook: ntap/36_create_nfsvol_pri_svm.yml
+#- import_playbook: ntap/37_create_nfsqtree_pri_svm.yml
+#- import_playbook: ntap/
+
+#------------------------------------------------------------------------------
+#
+# MDS 9000 configuration Steps
+#
+- import_playbook: mds/01-mds-features.yml
+- import_playbook: mds/02-mds-interfaces.yml
+- import_playbook: mds/05-mds-vsans.yml
+- import_playbook: mds/07-mds-da.yml
+- import_playbook: mds/09-mds-zoneset.yml
+- import_playbook: mds/10-mds-zoneset-activate.yml
+
+
+#------------------------------------------------------------------------------
+#
+# Nexus 9000 configuration Steps
+#
+# Backup the Nexus configuration to the local drive
+- import_playbook: nxos/00-backup-config.yml
+  when: configure_ci == 'true'
+
+# Configure NX-OS featues and global settings
+- import_playbook: nxos/01-configure_features.yml
+  when: configure_ci == 'true'
+- import_playbook: nxos/02-global-settings.yml
+  when: configure_ci == 'true'
+
+# Configure VLANs, Ports and Port Channels
+- import_playbook: nxos/03-create-vlan-list.yml
+- import_playbook: nxos/03-configure-vlan.yml
+- import_playbook: nxos/04-1-configure-eth-interface.yml
+- import_playbook: nxos/04-2-configure-eth-int-n5k.yml
+- import_playbook: nxos/06-configure-pc-interface.yml
+- import_playbook: nxos/07-1-configure-port-channels.yml
+- import_playbook: nxos/07-2-configure-port-channels-n5k.yml
+- import_playbook: nxos/10-configure-vlans-on-pc.yml
+- import_playbook: nxos/12-configure-port-mode.yml
+- import_playbook: nxos/13-1-configure-vlans-on-access-int.yml
+- import_playbook: nxos/13-2-configure-vlans-on-n5k_int.yml
+- import_playbook: nxos/15-configure-vlans-on-interfaces.yml
+#
+# Configure VPC
+- import_playbook: nxos/16-configure-vpc.yml
+  when: configure_ci == 'true' 
+- import_playbook: nxos/17-config-vpc-on-pc.yml
+  when: configure_ci == 'true'
+
+# Configure VLAN Interfaces with IP addresses and the routing
+- import_playbook: nxos/19-configure-vlan-interface.yml
+- import_playbook: nxos/20-configure-routing.yml
+
+# Configure monitoring and logging parameters
+- import_playbook: nxos/99-configure-snmpv3.yml
+
+#------------------------------------------------------------------------------
+#
+# Unified Computing System configuration steps
+#
+# Configure Unified Ports as FC ports
+- import_playbook: ucsm/00-unified_ports_6200.yml
+  when: configure_ci == 'true' and setup_6200 == 'true'
+- import_playbook: ucsm/00-unified_ports.yml
+  when: configure_ci == 'true' and setup_6200 != 'true'
+
+# Configure Management IP address pool required to manage UCS servers
+- import_playbook: ucsm/01-ip-kvm.yml
+
+# Configure DNS-Server, NTP-Server and Timezone
+- import_playbook: ucsm/02-1-dns-config.yml
+  when: configure_ci == 'true'
+- import_playbook: ucsm/02-2-ntp-config.yml
+  when: configure_ci == 'true'
+
+# Configure Server Ports and hardware policies
+- import_playbook: ucsm/03-chassis-discovery.yml
+  when: configure_ci == 'true'
+- import_playbook: ucsm/04-server-ports.yml
+  when: configure_ci == 'true'
+- import_playbook: ucsm/13-psu-policy.yml
+  when: configure_ci == 'true'
+- import_playbook: ucsm/20-maintenance-policy.yml
+  when: configure_ci == 'true'
+
+# Configue uplink Ethernet ports and QoS settings
+- import_playbook: ucsm/05-qos-system.yml
+  when: configure_ci == 'true'
+- import_playbook: ucsm/06-network-ports.yml
+  when: configure_ci == 'true'
+
+# Create UCS Sub-Org used by all playbooks below
+- import_playbook: ucsm/08-create-org.yml
+
+# Create MAC and UUID pools
+- import_playbook: ucsm/09-mac-pool.yml
+- import_playbook: ucsm/10-uuid-pool.yml
+
+# Configure iSCSI IQN pools
+- import_playbook: ucsm/11-iqn-pool.yml
+  when: configure_iscsi == 'true'
+- import_playbook: ucsm/12-ip-pool-iscsi-boot.yml
+  when: configure_iscsi == 'true'
+
+- import_playbook: ucsm/14-power-control.yml
+  when: configure_ci == 'true'
+
+- import_playbook: ucsm/15-network-control.yml
+- import_playbook: ucsm/16-host-fw.yml
+- import_playbook: ucsm/17-local-disk-config.yml
+- import_playbook: ucsm/18-server-bios.yml
+- import_playbook: ucsm/18-server-bios-latency.yml
+- import_playbook: ucsm/18-server-bios-hpc.yml
+- import_playbook: ucsm/19-serial-over-lan.yml
+- import_playbook: ucsm/21-create-vlans.yml
+- import_playbook: ucsm/22-vlan-group.yml
+- import_playbook: ucsm/23-eth-adapter-policy.yml
+#- import_playbook: ucsm/24-qos-policy-del.yml
+- import_playbook: ucsm/24-qos-policy.yml
+- import_playbook: ucsm/25-vnic-template.yml
+- import_playbook: ucsm/26-vnic-placement.yml
+- import_playbook: ucsm/27-lan-connect-policy.yml
+- import_playbook: ucsm/28-vmedia-policy.yml
+- import_playbook: ucsm/29-disk-group.yml
+- import_playbook: ucsm/30-storage-profile.yml
+- import_playbook: ucsm/31-server-pool.yml
+- import_playbook: ucsm/32-san-connect-policy.yml
+- import_playbook: ucsm/33-wwn-pools.yml
+- import_playbook: ucsm/34-vsan.yml
+- import_playbook: ucsm/35-vsan-trunk.yml
+- import_playbook: ucsm/36-fc-port-channel.yml
+- import_playbook: ucsm/37-vhba-template.yml
+#- import_playbook: ucsm/38-scrub.yml
+- import_playbook: ucsm/39-boot-policy.yml
+- import_playbook: ucsm/40-sp-template.yml
+- import_playbook: ucsm/50-sp-from-template.yml
+#
+#- import_playbook: ucsm/99-ucs-query.yml
+
+#------------------------------------------------------------------------------
+#
+# ESXi host configuration steps
+#
+#- import_playbook: vmware/01-create_dc.yml
+#- import_playbook: vmware/02-create_cluster.yml
+#- import_playbook: vmware/05-create_vds.yml
+#- import_playbook: vmware/06-create_vds_pg.yml
+#- import_playbook: vmware/11-add_esxi_hosts_to_VC.yml
+#- import_playbook: vmware/13-add_esxi_hosts_to_dvs.yml
+#- import_playbook: vmware/15-add_esxi_ntp.yml
+#- import_playbook: vmware/17-modify_esxi_vswitch0.yml
+#- import_playbook: vmware/18-create_esxi_vswitch1.yml
+#- import_playbook: vmware/19-create_esxi_nfs_vmotion_PG.yml
+#- import_playbook: vmware/20-add_esxi_vmotion_vmk.yml
+#- import_playbook: vmware/21-add_esxi_nfs_vmk.yml
+#- import_playbook: vmware/25-add_esxi_nfs_datastores.yml
+#- import_playbook: vmware/
+#- import_playbook: vmware/
+#
+
+

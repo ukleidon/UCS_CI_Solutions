@@ -1,0 +1,68 @@
+---
+################################################################################
+#
+# Title:        09-mds-zoneset-ucs.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2021-03-31
+# Description:  Configure device aliases and zones for UCS server on MDS 
+#               switches with Ansible modules.
+#
+# Variables:    temp_wwnn_file = name of file with all WWNN from UCSM
+#
+# Modules:      nxos_devicealiases
+#		nxos_zone_zoneset
+#
+# URLs:         https://galaxy.ansible.com/cisco/mds
+#
+# Built-in help:
+# ansible-doc cisco.mds.nxos_devicealiases
+# ansible-doc cisco.mds.nxos_zone_zoneset
+#
+################################################################################
+#
+#- hosts: mds*
+#  connection: network_cli
+#  gather_facts: no
+#  vars:
+#  tasks:
+
+    - name: 00 include ucsm_wwnn_vars
+      include_vars: "{{ temp_wwnn_file }}"
+
+    - name: 01 Create DA list
+      set_fact:
+        da: "{{ da | default([]) + 
+            [ { 'name' : (item.name + '-' + item.fabric), 'pwwn' : item.wwnn } ]
+          }}"
+      loop: "{{ ucs_wwnns_list }}"
+      when: " item.vsan | int  ==  vsan_id | int and 'Shopfloor-ESX-04' in item.name "
+
+    - name: 89 Print Information
+      debug: var=da
+      when: debugging == 'true'
+
+    - name: 01 Create device alias on MDS
+      nxos_devicealias:
+        distribute: yes
+        mode: enhanced
+        da:
+          - name: "{{ item.name }}" 
+            pwwn: "{{ item.pwwn }}" 
+      loop: "{{ da }}"
+      when: "'Shopfloor-ESX-04' in item.name " 
+
+
+    - name: Create a Zone and Zoneset
+      nxos_zone_zoneset:
+        zone_zoneset_details:
+          - mode: basic
+            smart_zoning: true
+            vsan: "{{ vsan_id }}"
+            zone:
+              - members:
+                  - pwwn: "{{ item.wwnn }}"
+                    devtype: "initiator"
+                name: "{{  zone_name  }}"
+      loop: "{{ ucs_wwnns_list }}"
+#      when: " item.vsan | int  ==  vsan_id | int " 
+      when: " item.vsan | int  ==  vsan_id | int and 'Shopfloor-ESX-04' in item.name "

@@ -1,0 +1,74 @@
+---
+################################################################################
+#
+# Title:        16-configure-vpc.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure VPC domain
+#
+# Variables:    
+#
+#              
+# Modules:     
+#
+# URLs:         https://galaxy.ansible.com/cisco/nxos
+#               https://developer.cisco.com/
+#
+# Built-in help:
+# ansible-doc cisco.nxos.
+#
+################################################################################
+#
+#- hosts: nexus*
+#  connection: network_cli
+#  gather_facts: no
+#  tasks:
+
+   - name: 07 Check mgmt0 IP address in case ansible_host is a hostname
+     nxos_command:
+       commands: "show run int mgmt0 |egrep 'ip addr' | cut -d ' ' -f 5 |cut -d '/' -f 1"
+     register: "nxos_show_run_int"
+
+   - name: Define some parameters
+     set_fact: 
+        ip_addr: "{{ nxos_show_run_int.stdout.0 }}"
+        ip_segments: "{{ nxos_show_run_int.stdout.0.split('.') }}"
+
+   - name: Calculate VPC role priority from VPC domain ID and IP address
+     set_fact: 
+        vpc_priority: "{{ vpc_domain_id|int + ip_segments[3]|int }}" 
+     when: vpc_domain_id is defined
+
+   # This task creates the string with all VLAN IDs from vlan_list
+   # All VLANs configured as Native are excluded
+   - name: Configuring vpc Domain, Peer-link and Global Parameters
+     nxos_vpc:
+       domain: "{{ vpc_domain_id }}"
+       role_priority: "{{ vpc_role_priority | default(vpc_priority) }}"
+       pkl_src: "{{ vpc_source | default(ip_addr) }}"
+       pkl_dest: "{{ vpc_destination }}"
+       peer_gw: 'true'
+       auto_recovery: 'false'
+       delay_restore: '150'
+       state: "{{ state }}"
+
+
+
+   # This task adds following vpc domain configuration parameters because 
+   # the ansible function does not support them:
+   # ip arp synchronize
+   # peer-switch
+   - name: Update VPC domain parameters
+     nxos_config:
+       lines:
+         - peer-switch
+         - ip arp synchronize
+       parents: vpc domain {{ vpc_domain_id }}
+     when: nx_state != 'deleted' or nx_state is not defined
+#
+#
+   - name: Enabling vPC Peer Link on {{ peerlink_PC[0].interface }}
+     nxos_vpc_interface:
+       portchannel: "{{ peerlink_PC[0].id }}"
+       peer_link: true
+     when: nx_state != 'deleted' or nx_state is not defined

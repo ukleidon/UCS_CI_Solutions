@@ -1,0 +1,1272 @@
+
+# file: group_vars/pod4
+
+# Variables File for UCS configuration WDF02-4-POD4 FLEXPOD Solution
+
+
+encrypted_root_password: '$6$ZBDHlczs$YmLTJN6CfXhPQ42f9QSsKTJC4v/dSRojFhswMB44U9hziH8kydl.IsPLld6Gh8aX547VZWntwaETnyQR2ZMbh.'
+src_iso_file: 'VMware_ESXi_7.0.0_15843807_Custom_Cisco_4.1.1a.iso'
+random_nr: "{{ 1000 | random }}"
+nx_cfg_state: 'merged'
+#
+#------------------------------------------------------------------------------
+# Setup Converged Infrastructure basics ?
+#
+# Define if the day0/day1 configuration of the hardware components like,
+# server ports, uplink ports, DNS server, power policies and others 
+# are configured or not. 
+# In case this parameter is not set to 'true', only the workload specific
+# configuration, like BIOS policy, storage policy, ServiceProfileTemplate
+# are configured. The parameter is NOT used in any working modules, it is 
+# only used in the main playbook file importing other playbooks.
+
+setup_ci: 'true'
+
+
+#------------------------------------------------------------------------------
+# Setup this system for iSCSI or Fibre-Channel connections?
+#
+# setup_local: config the system for local boot only - no iSCSI or FC interfaces
+# setup_iscsi: config the system for iscsi boot - no FC interfaces
+# setup_san: config the system for san boot only - no iscsi interfaces
+setup_local: 'true'
+setup_fc: 'true'
+setup_iscsi: 'true'
+setup_nfs: 'true'
+
+
+###############################################################################
+#
+#
+# VLAN | Network | VLAN | Network | VLAN | Network | VLAN | Network | VLAN
+#
+#
+###############################################################################
+#
+# Default Gateway for the POD - Configured on the Top Of Rack Switch/Router
+#
+default_gw: '172.131.24.1'
+
+
+# Create VLANs for basic UCS / CI Solution.
+#
+# VLAN Names and IDs are adjustable and can be modified here. The variables
+# are used in some places through solution configuration.
+#
+# -- In UCS it is supported to use one VLAN ID with multiple VLAN names
+# -- like Admin and HANA-Mgmt uses ID 211. For some use-cases, sharing of
+# -- VLAN ID makes a lot of sense. For other use-casses it can impact
+# -- performance or connectivity issues.
+# -- For SAP HANA with NFS storage, it is recommended to use dedicated
+# -- VLAN configuration for Data and Log traffic. Data traffic is throughput
+# -- optimized and Log traffic is latency optimized. 
+# -- In most installations, where enough resources are available, both
+# -- types of traffic can use the same network. In case the system
+# -- is very performance sensitive, or the available resources are limited,
+# -- it is better to use the optimized configuration. 
+#
+# The first list of VLANs are from baseline CVD to setup the basic
+# Infrastructure in the POD.
+# 
+native_vlan_name: 'Native-Vlan'     # Native VLAN Name
+native_vlan_id: '2'                 # Native VLAN ID
+oob_vlan_name: 'Admin'              # Out of Band Mgmt VLAN Name
+oob_vlan_id: '181'                  #
+oob_vlan_gw: '172.18.1.1'           #
+oob_vlan_net: '172.18.1.0'           #
+ib_vlan_name: 'IB-Admin'            # IN BAND Management VLAN Name
+ib_vlan_id: '1810'                  #
+ib_vlan_gw: '172.18.100.1'          #
+ib_vlan_net: '172.18.100.0'          #
+iscsiA_vlan_name: 'iscsi-a'         # iSCSI-A VLAN (if needed) Name
+iscsiA_vlan_id: '187'               #
+iscsiB_vlan_name: 'iscsi-b'         # iSCSI-B VLAN (if needed) Name
+iscsiB_vlan_id: '188'               #
+#
+# In some installations it is required to setup UCS with disjoint L2 networking.
+# 
+dis_l2_native_vlan_name: 'Dis_Native-Vlan' # Native VLAN Name for Disjonit L2
+dis_l2_native_vlan_id: '3'                 #
+
+#
+# Please add all required VLAN to the vlan_list or dis_vlan_list.
+# VLANs not listed will not be configured on the system
+# The list is also used in the vNIC configuration
+# fabric: common (Fabric A and B), A (Fabric A only), B (Fabric B only)
+#         if not defined the system will use common
+# native: specify 'yes' only if a native VLAN is required on L2 uplinks
+#         if not defined the system will use no
+# 
+vlan_list: "{{ native_vlan_list + mgmt_vlan_list + storage_vlan_list + access_vlan_list + vmotion_vlan_list}}"
+
+native_vlan_list:
+  - name: "{{ native_vlan_name }}"
+    id: "{{ native_vlan_id }}"
+    native: 'yes'
+    fabric: 'common'
+
+mgmt_vlan_list:
+  - name: "{{ oob_vlan_name }}"
+    id: "{{ oob_vlan_id }}"
+    ip: "{{ oob_vlan_gw }}"
+    net: "{{ oob_vlan_net }}"
+  - name: "{{ ib_vlan_name }}"
+    id: "{{ ib_vlan_id }}"
+    ip: "{{ ib_vlan_gw }}"
+    net: "{{ ib_vlan_net }}"
+
+vmotion_vlan_list:
+  - name: "{{ vmotion_vlan_name }}"
+    id: "{{ vmotion_vlan_id }}"
+    ip: "{{ vmotion_vlan_gw }}"
+    net: "{{ vmotion_vlan_net }}"
+
+access_vlan_list:
+  - name: "{{ vm_vlan_name }}"
+    id: "{{ vm_vlan_id }}"
+    ip: "{{ vm_vlan_gw }}"
+    net: "{{ vm_vlan_net }}"
+  - name: "{{ sf1_vlan_name }}"
+    id: "{{ sf1_vlan_id }}"
+    ip: "{{ sf1_vlan_gw }}"
+    net: "{{ sf1_vlan_net }}"
+  - name: "{{ sf2_vlan_name }}"
+    id: "{{ sf2_vlan_id }}"
+    ip: "{{ sf2_vlan_gw }}"
+    net: "{{ sf2_vlan_net }}"
+  - name: "{{ storage_grid_name }}"
+    id: "{{ storage_grid_id }}"
+    ip: "{{ storage_grid_gw }}"
+    net: "{{ storage_grid_net }}"
+
+storage_vlan_list:
+  - name: "{{ nfs_vlan_name }}"
+    id: "{{ nfs_vlan_id }}"
+    ip: "{{ nfs_vlan_gw }}"
+    net: "{{ nfs_vlan_net }}"
+  - name: "{{ sf1_stor_vlan_name }}"
+    id: "{{ sf1_stor_vlan_id }}"
+    ip: "{{ sf1_stor_vlan_gw }}"
+    net: "{{ sf1_stor_vlan_net }}"
+  - name: "{{ sf2_stor_vlan_name }}"
+    id: "{{ sf2_stor_vlan_id }}"
+    ip: "{{ sf2_stor_vlan_gw }}"
+    net: "{{ sf2_stor_vlan_net }}"
+# The two iSCSI VLANs are not required for Fibre-Channel-Only deployments.
+  - name: "{{ iscsiA_vlan_name }}"
+    id: "{{ iscsiA_vlan_id }}"
+    fabric: 'A'
+    nx_enabled: 'True'
+  - name: "{{ iscsiB_vlan_name }}"
+    id: "{{ iscsiB_vlan_id }}"
+    fabric: 'B'
+    nx_state: 'active'
+
+# Define a list of all VLANs accessible by virtual machines in case the access_vlan_list
+# does not match.
+# If dvs_vlan_list is not defined all VLANS in access_vlan_list are created on DVS
+dvs_vlan_list:
+  - name: "{{ vm_vlan_name }}"
+    id: "{{ vm_vlan_id }}"
+  - name: "{{ sf1_vlan_name }}"
+    id: "{{ sf1_vlan_id }}"
+  - name: "{{ sf2_vlan_name }}"
+    id: "{{ sf2_vlan_id }}"
+  - name: "{{ sf1_stor_vlan_name }}"
+    id: "{{ sf1_stor_vlan_id }}"
+  - name: "{{ sf2_stor_vlan_name }}"
+    id: "{{ sf2_stor_vlan_id }}"
+  - name: "{{ storage_grid_name }}"
+    id: "{{ storage_grid_id }}"
+    id: "{{ storage_grid_id }}"
+
+
+# 22. Create VLAN Groups
+# VLAN Group for default usage / traffic  assigned to Uplink-[AB] port channel
+vlan_group_name: Default-VLAN-Group
+
+# VLAN group for Disjoint L2 usage / traffic assigned to Uplink-2-[AB] port channel
+dis_vlan_group_name: Disjoint-VLAN-Group
+
+###############################################################################
+#
+# UCS | UCS | UCS | UCS | UCS | UCS | UCS | UCS | UCS | UCS | UCS | UCS | UCS
+#
+###############################################################################
+
+#------------------------------------------------------------------------------
+# 00. Configure Unified Ports as FC ports
+# Changing the number of FC ports configured will cause an FI reboot!
+# setup_fc must be set to 'true' to enable fc port configuration
+# The fc port number can be 4 or 8 (default is 8)
+number_fc_ports: 4
+
+
+#------------------------------------------------------------------------------
+# 01. External Management IP Address (OOB Management)
+# Block of External Management IP Address (same subnet as UCS Manager)
+#
+# It is recommeneded to configure a number of ip addresses in the ext-mgmt pool
+# that matches the number of physical servers connected to the domain.
+# This makes infrastructure management easier.
+# As the pool ext-mgmt is the default, all Service-Profiles without specific 
+# management IP pool configuration will also get an IP address from this pool.
+#
+# In case mgpt_pool_name is not ext-mgmt, it is required to specify mgmt-pool 
+# in the ServiceProfile-Template or ServiceProfile configuration !!!!
+#
+mgmt_pool_name: 'ext-mgmt'
+mgmt_first_ip: 172.18.1.70
+mgmt_last_ip: 172.18.1.89
+mgmt_subnet_mask: 255.255.255.0
+mgmt_default_gw: 172.18.1.1
+
+
+#------------------------------------------------------------------------------
+# 03. UCS Chassis discovery Policy
+#     setup_ci
+# chassis_links options: 1-link, 2-link, 4-link, 8-link, platform-max
+# chassis_link_aggr options: port-channel , none (check UCSM version)
+chassis_links: 4-link
+chassis_link_aggr: port-channel
+
+#------------------------------------------------------------------------------
+# 04. Enable Server ports
+#     setup_ci
+# There are three options to configure the server ports.
+# Option 1: Enable Auto-Discovery-Server-Ports Policy
+# Set to 'true' to configure it
+server_port_auto_discovery: 'true'
+
+#------------------------------------------------------------------------------
+# 06. Enable Uplink ports and the Port-Channels
+#     setup_ci
+# All network uplink ports are configured in port-channels. The configuration
+# of the ports and port-channels are done in one module. Please change the
+# port_channel_list to change the port ID and/or the number of ports.
+#
+port_channel_a_name: 'Uplink-A'
+port_channel_a_id: '25'
+port_channel_b_name: 'Uplink-B'
+port_channel_b_id: '26'
+admin_speed: 'auto'
+
+port_channel_list:
+  - name: "{{ port_channel_a_name }}"
+    pc_id: "{{ port_channel_a_id }}"
+    fabric_id: 'A'
+    slot_id: '1'
+    port_id: '9'
+  - name: "{{ port_channel_a_name }}"
+    pc_id: "{{ port_channel_a_id }}"
+    fabric_id: 'A'
+    slot_id: '1'
+    port_id: '10'
+  - name: "{{ port_channel_a_name }}"
+    pc_id: "{{ port_channel_a_id }}"
+    fabric_id: 'A'
+    slot_id: '1'
+    port_id: '11'
+  - name: "{{ port_channel_a_name }}"
+    pc_id: "{{ port_channel_a_id }}"
+    fabric_id: 'A'
+    slot_id: '1'
+    port_id: '12'
+#  - name: "{{ port_channel_a_name }}"
+#    pc_id: "{{ port_channel_a_id }}"
+#    fabric_id: 'A'
+#    slot_id: '1'
+#    port_id: '53'
+#  - name: "{{ port_channel_a_name }}"
+#    pc_id: "{{ port_channel_a_id }}"
+#    fabric_id: 'A'
+#    slot_id: '1'
+#    port_id: '54'
+  - name: "{{ port_channel_b_name }}"
+    pc_id: "{{ port_channel_b_id }}"
+    fabric_id: 'B'
+    slot_id: '1'
+    port_id: '9'
+  - name: "{{ port_channel_b_name }}"
+    pc_id: "{{ port_channel_b_id }}"
+    fabric_id: 'B'
+    slot_id: '1'
+    port_id: '10'
+  - name: "{{ port_channel_b_name }}"
+    pc_id: "{{ port_channel_b_id }}"
+    fabric_id: 'B'
+    slot_id: '1'
+    port_id: '11'
+  - name: "{{ port_channel_b_name }}"
+    pc_id: "{{ port_channel_b_id }}"
+    fabric_id: 'B'
+    slot_id: '1'
+    port_id: '12'
+#  - name: "{{ port_channel_b_name }}"
+#    pc_id: "{{ port_channel_b_id }}"
+#    fabric_id: 'B'
+#    slot_id: '1'
+#    port_id: '53'
+#  - name: "{{ port_channel_b_name }}"
+#    pc_id: "{{ port_channel_b_id }}"
+#    fabric_id: 'B'
+#    slot_id: '1'
+#    port_id: '54'
+
+
+#------------------------------------------------------------------------------
+# 06. Enable Optional Uplink ports for Disjoint L2
+# To configure Disjoint L2 uplink on UCS set configure_disjoint_l2 to true.
+# Uplink ports and PC for Disjoint L2 and the required VLAN groups are
+# only condigured if setup_disjoint_l2 is 'true'
+setup_disjoint_l2: 'false'
+#
+
+#------------------------------------------------------------------------------
+# 09. Create MAC Address Pool
+mac_pool_list:
+  - name: 'fi-a'
+    first_mac: 00:25:B5:0A:04:00
+    last_mac: 00:25:B5:0A:04:3F
+  - name: 'fi-b'
+    first_mac: 00:25:B5:0B:04:00
+    last_mac: 00:25:B5:0B:04:3F
+
+
+#------------------------------------------------------------------------------
+# 10. Create UUID Suffix pool
+uuid_pool_name: uuid-pool 
+uuid_start: 0004-000000000001
+uuid_end: 0004-000000000278
+
+#------------------------------------------------------------------------------
+# 11. Create IQN Pool for iSCSI Boot
+iqn_pool_name: 'IQN-POD6'
+iqn_prefix: 'iqn.2019-09.com.flexpod'
+iqn_suffix: 'Pod4-node'
+iqn_suffix_from: '1'
+iqn_suffix_to: '32'
+
+#------------------------------------------------------------------------------
+# 12 Create IP Pools for iSCSI Boot
+
+iscsi_a_pool_name: 'iSCSI-IP-Pool-A'
+iscsi_b_pool_name: 'iSCSI-IP-Pool-B'
+
+iscsi_ip_pool_list:
+  - name: "{{ iscsi_a_pool_name }}"
+    first_ip: 172.18.128.101
+    last_ip: 172.18.128.132
+    subnet_mask: 255.255.255.0
+  - name: "{{ iscsi_b_pool_name }}"
+    first_ip: 172.18.129.101
+    last_ip: 172.18.129.132
+    subnet_mask: 255.255.255.0
+
+#------------------------------------------------------------------------------
+# 16. Create Host Firmware Package Policy
+# leave the bundle version empty if not required in the system, i.e., for blade only
+#fp_host_fw_name: 'FW-4.01a'
+fp_host_fw_descrption: 'FW package for Shop Floor 4.0 solution'
+fp_blade_bundle_verion: '4.0(1a)B'
+fp_rack_bundle_verion: '4.0(1a)C'
+
+#------------------------------------------------------------------------------
+# 18. Create Server BIOS Policies
+#
+bios_policy_name: 'M5_HighPerf_1_0'
+bios_policy_hana: 'M5_HANA_1_0'
+#
+#------------------------------------------------------------------------------
+# 24. Create QoS policies
+# Playloads configued on top of this UCS / CI solution may configure additional policies.
+qos_policy_list:
+#  - name: 'Platinum'
+#    prio: 'platinum'
+#    burst: '10240'
+#    rate: 'line-rate'
+#    host_control: 'none'
+#  - name: 'Gold'
+#    prio: 'gold'
+#    burst: '10240'
+#    rate: 'line-rate'
+#    host_control: 'none'
+#  - name: 'Silver'
+#    prio: 'silver'
+#    burst: '10240'
+#    rate: '10240'
+#    host_control: 'none'
+#  - name: 'Bronze'
+#    prio: 'bronze'
+#    burst: '10240'
+#    rate: '2048'
+#    host_control: 'none'
+  - name: 'Best-Effort'
+    prio: 'best-effort'
+    burst: '10240'
+    rate: 'line-rate'
+    host_control: 'none'
+
+#------------------------------------------------------------------------------
+# 25. Create vNIC Templates
+# 
+
+iscsi_template_list:
+  - name: 'iSCSI-A'
+    fabric: 'A'
+    mac_pool: "{{ mac_pool_list[0].name }}"
+    vlans: 
+      - name: "{{ iscsiA_vlan_name }}"
+        native: 'yes'
+    template_type: 'updating-template'
+    network_control_policy: "{{ NCP_name }}"
+    order: '1'
+    adapter_policy: 'Linux'
+
+  - name: 'iSCSI-B'
+    fabric: 'B'
+    mac_pool: "{{ mac_pool_list[1].name }}"
+    vlans: 
+      - name: "{{ iscsiB_vlan_name }}"
+        native: 'yes'
+    template_type: 'updating-template'
+    network_control_policy: "{{ NCP_name }}"
+    order: '2'
+    adapter_policy: 'Linux'
+#vnic_template_list:
+#  - name: 'Management'
+#    fabric: 'A-B'
+#    mac_pool: "{{ mac_pool_list[0].name }}"
+#    vlans:
+#      - name: "{{ native_vlan_name }}"
+#        native: 'yes'
+#      - name: "{{ oob_vlan_name }}"
+#    template_type: 'updating-template'
+#    network_control_policy: "{{ NCP_name }}"
+#    adapter_policy: 'vmware'
+#
+#
+#  - name: 'vSwitch0-A'
+#    fabric: 'A'
+#    mac_pool: "{{ mac_pool_list[0].name }}"
+#    mtu: '1500'
+#    qos_policy: ''
+#    target: 'adapter'
+#    network_control_policy: "{{ NCP_name }}"
+#    redundant_peer: 'vSwitch0-B'
+#    redundancy_type: 'primary'
+#    template_type: 'updating-template'
+#    vlans:
+#      - name: "{{ native_vlan_name }}"
+#        native: 'yes'
+#      - name: "{{ oob_vlan_name }}"
+#      - name: "{{ nfs_vlan_name }}"
+#    adapter_policy: 'VMWare'
+#    order: '1'
+#
+#  - name: 'vSwitch0-B'
+#    fabric: 'B'
+#    mac_pool: "{{ mac_pool_list[1].name }}"
+#    mtu: '1500'
+#    qos_policy: ''
+#    target: 'adapter'
+#    network_control_policy: "{{ NCP_name }}"
+#    redundant_peer: 'vSwitch0-A'
+#    redundancy_type: 'secondary'
+#    template_type: 'updating-template'
+#    vlans:
+#      - name: "{{ native_vlan_name }}"
+#        native: 'yes'
+#      - name: "{{ oob_vlan_name }}"
+#      - name: "{{ nfs_vlan_name }}"
+#    adapter_policy: 'VMWare'
+#    order: '2'
+#
+#  - name: 'VDS-A'
+#    fabric: 'A'
+#    mac_pool: "{{ mac_pool_list[0].name }}"
+#    mtu: '9000'
+#    qos_policy: ''
+#    target: 'adapter'
+#    network_control_policy: "{{ NCP_name }}"
+#    redundant_peer: 'VDS-B'
+#    redundancy_type: 'primary'
+#    template_type: 'updating-template'
+#    vlans:
+#      - name: "{{ vm_vlan_name }}"
+#      - name: "{{ sf1_stor_vlan_name }}"
+#      - name: "{{ sf2_stor_vlan_name }}"
+#      - name: "{{ sf1_vlan_name }}"
+#      - name: "{{ sf2_vlan_name }}"
+#    adapter_policy: 'VMWare'
+#    order: '3'
+#
+#  - name: 'VDS-B'
+#    fabric: 'B'
+#    mac_pool: "{{ mac_pool_list[1].name }}"
+#    mtu: '9000'
+#    qos_policy: ''
+#    target: 'adapter'
+#    network_control_policy: "{{ NCP_name }}"
+#    redundant_peer: 'VDS-A'
+#    redundancy_type: 'secondary'
+#    template_type: 'updating-template'
+#    vlans:
+#      - name: "{{ vm_vlan_name }}"
+#      - name: "{{ sf1_stor_vlan_name }}"
+#      - name: "{{ sf2_stor_vlan_name }}"
+#      - name: "{{ sf1_vlan_name }}"
+#      - name: "{{ sf2_vlan_name }}"
+#    adapter_policy: 'VMWare'
+#    order: '4'
+#
+#  - name: 'vMotion-A'
+#    fabric: 'A'
+#    mac_pool: "{{ mac_pool_list[0].name }}"
+#    mtu: '9000'
+#    qos_policy: ''
+#    target: 'adapter'
+#    network_control_policy: "{{ NCP_name }}"
+#    redundant_peer: 'vMotion-B'
+#    redundancy_type: 'primary'
+#    template_type: 'updating-template'
+#    vlans:
+#      - name: "{{ vmotion_vlan_name }}"
+#    adapter_policy: 'VMWare'
+#    order: '5'
+#
+#  - name: 'vMotion-B'
+#    fabric: 'B'
+#    mac_pool: "{{ mac_pool_list[1].name }}"
+#    mtu: '9000'
+#    qos_policy: ''
+#    target: 'adapter'
+#    network_control_policy: "{{ NCP_name }}"
+#    redundant_peer: 'vMotion-A'
+#    redundancy_type: 'secondary'
+#    template_type: 'updating-template'
+#    vlans:
+#      - name: "{{ vmotion_vlan_name }}"
+#    adapter_policy: 'VMWare'
+#    order: '6'
+#
+
+#------------------------------------------------------------------------------
+# 27. Create LAN Connectivity Policy  
+lan_connnect_policy_name: iSCSI-LCP
+iscsi_lan_conn_policy: iSCSI-LCP
+fc_lan_conn_policy: FibreChannel-LCP
+#
+
+#------------------------------------------------------------------------------
+# 28. Configure vMedia Policies
+vmedia_list:
+  - name: 'CentOS7'
+    device_type: 'cdd'
+    file_name: 'CentOS-7-x86_64-DVD-1810.iso'
+    file_path: 'software/Redhat'
+    mapping_name: 'CentOS7'
+    mount_proto: 'nfs'
+    remote_ip: '10.49.82.76'
+    ks_device_type: 'hdd'
+    ks_image_type: 'service-profile-name'
+##    ks_image_name: 'test'
+    ks_file_path: 'software/Redhat'
+    ks_mapping_name: 'KS'
+    ks_mount_proto: 'nfs'
+    ks_remote_ip: '10.49.82.76'
+
+#------------------------------------------------------------------------------
+# 31. SAN Connection Policy
+#
+san_policy_name: 'FC-Boot'
+
+san_policy_vhba_a_name: 'Fabric-A'
+san_policy_vhba_b_name: 'Fabric-B'
+
+vhba_a_name: 'vHBA-A'
+vhba_b_name: 'vHBA-B'
+
+wwnn_pool_name: "{{ wwn_pool_list[0].name }}"
+
+#------------------------------------------------------------------------------
+# 32. WWNN and WWPN Pools
+
+wwn_pool_list:
+  - name: 'WWNN-Pool'
+    first_address: '20:00:00:25:B5:A4:00:00'
+    last_address: '20:00:00:25:B5:A4:00:1F'
+    purpose: node
+  - name: 'WWPN-Pool-A'
+    first_address: '20:00:00:25:B5:A4:0A:00'
+    last_address: '20:00:00:25:B5:A4:0A:1F'
+    purpose: port
+  - name: 'WWPN-Pool-B'
+    first_address: '20:00:00:25:B5:A4:0B:00'
+    last_address: '20:00:00:25:B5:A4:0B:1F'
+    purpose: port
+
+
+#------------------------------------------------------------------------------
+# 33. VSAN Configuration
+vsan_list:
+  - name: 'Fabric-A'
+    vsan_id: '111'
+    fcoe_vlan: '111'
+    fabric: 'A'
+  - name: 'Fabric-B'
+    vsan_id: '112'
+    fcoe_vlan: '112'
+    fabric: 'B'
+
+#------------------------------------------------------------------------------
+# 35. FC Uplink Port Channel
+
+fc_uplink_PC_list:
+  - name: "To-MDS1"
+    pc_id: "21"
+    fabric: "A"
+    vsan: "{{ vsan_list[0].name }}"
+    admin_speed: '32gbps'
+    description: 'FC Uplink Port-Channel Fabric-A'
+  - name: "To-MDS2"
+    pc_id: "22"
+    fabric: "B"
+    vsan: "{{ vsan_list[1].name }}"
+    admin_speed: '32gbps'
+    description: 'FC Uplink Port-Channel Fabric-B'
+
+fc_port_channel_list:
+  - name: "{{ fc_uplink_PC_list[0].name }}"
+    pc_id: "{{ fc_uplink_PC_list[0].pc_id }}"
+    fabric: "{{ fc_uplink_PC_list[0].fabric }}"
+    admin_speed: '32gbps'
+    auto_negotiate: 'yes'
+    slot_id: '1'
+    port_id: '1'
+  - name: "{{ fc_uplink_PC_list[0].name }}"
+    pc_id: "{{ fc_uplink_PC_list[0].pc_id }}"
+    fabric: "{{ fc_uplink_PC_list[0].fabric }}"
+    admin_speed: '32gbps'
+    auto_negotiate: 'yes'
+    slot_id: '1'
+    port_id: '2'
+  - name: "{{ fc_uplink_PC_list[1].name }}"
+    pc_id: "{{ fc_uplink_PC_list[1].pc_id }}"
+    fabric: "{{ fc_uplink_PC_list[1].fabric }}"
+    admin_speed: '32gbps'
+    auto_negotiate: 'yes'
+    slot_id: '1'
+    port_id: '3'
+  - name: "{{ fc_uplink_PC_list[1].name }}"
+    pc_id: "{{ fc_uplink_PC_list[1].pc_id }}"
+    fabric: "{{ fc_uplink_PC_list[1].fabric }}"
+    admin_speed: '32gbps'
+    auto_negotiate: 'yes'
+    slot_id: '1'
+    port_id: '4'
+
+
+#------------------------------------------------------------------------------
+# 36. vHBA Template
+vhba_list:
+  - name: "{{ vhba_a_name}}"
+    fabric: 'A'
+    vsan: "{{ vsan_list[0].name }}"
+    wwpn_pool: "{{ wwn_pool_list[1].name }}"
+    type: "updating-template"
+  - name: "{{ vhba_b_name }}"
+    fabric: 'B'
+    vsan: "{{ vsan_list[1].name }}"
+    wwpn_pool: "{{ wwn_pool_list[2].name }}"
+    type: "updating-template"
+
+
+
+#------------------------------------------------------------------------------
+# 39. Create Boot Policy  
+# vd0_boot
+local_boot_policy_name: 'Local-Boot'
+vd0_boot_policy_name: 'VD0-Boot'
+iscsi_boot_policy_name: 'iSCSI-Boot'
+fc_boot_policy_name: 'AFF-Boot-NS'
+
+enforce_vnic_name: 'yes'
+reboot_on_update: 'no'
+
+# UEFI Settings
+boot_mode: 'uefi'
+  ## Secure boot 'yes' is not supported with ESXi for unattended installations!!!!
+secure_boot: 'no'
+  #secure_boot: 'yes'
+
+boot_loader_path: '\\EFI\\BOOT\\'
+boot_loader_name: 'BOOTX64.EFI'
+
+
+# Storage WWPNs (AFF A400)
+storage_node1_b: '20:15:d0:39:ea:28:67:e2'
+storage_node2_b: '20:0e:d0:39:ea:28:67:e2'
+storage_node1_a: '20:02:d0:39:ea:28:67:e2'
+storage_node2_a: '20:0c:d0:39:ea:28:67:e2'
+
+
+# Storage WWPNs (FAS8040)
+#storage_node1_b: '20:01:00:a0:98:5d:8d:8a'
+#storage_node1_a: '20:02:00:a0:98:5d:8d:8a'
+#storage_node2_b: '20:03:00:a0:98:5d:8d:8a'
+#storage_node2_a: '20:04:00:a0:98:5d:8d:8a'
+
+
+#
+#------------------------------------------------------------------------------
+# 40. Create IPMI over LAN policy
+#
+# Policy Name for the core infrastructure solution:
+ipmi_access_profile_name: 'ipmi_infra'
+
+# User name for IPMI access:
+ipmi_user: "ansible"
+
+# Password for the IPMI user:
+ipmi_password: "SAPhana20!"
+
+# Next IPMI status to be called i.e. for unattended installations:
+#   on: power on server
+#   off: power off server
+#   reset: power on server or reset a running server
+ipmi_next_state: "boot"
+
+#------------------------------------------------------------------------------
+# 41. 42. iSCSI Boot Target
+iscsi_target_name: 'iqn.1992-08.com.netapp:boot'
+iscsi_lif_ip_1a: 172.18.128.11
+iscsi_lif_ip_2a: 172.18.128.12
+iscsi_lif_ip_1b: 172.18.129.11
+iscsi_lif_ip_2b: 172.18.129.12
+
+###############################################################################
+#
+# Nexus | Nexus | Nexus | Nexus | Nexus | Nexus | Nexus | Nexus | Nexus | Nexus
+#
+###############################################################################
+#
+# VPC Domain ID
+vpc_domain_id: "18"
+# Default Port Mode. Can be access or trunk
+# If default_pm = trunk, use port_mode 'access' for interfaces which are not
+#       configured as trunk mode
+default_pm: 'trunk'
+# Default Spanning-Tree Port Type
+default_stpt: 'edge trunk'
+# Default Interface Mode layer2/layer3
+default_layer: 'layer2'
+# Default Interface Status True = no shut / False = shut
+default_enabled: 'True'
+
+# Configure backup directory on local linux system
+backup_dir: '/opt/dasi'
+
+# VPC Role Priority can be set per device in the host var file. Or
+# it will be calculated by vpc_domain_id plus the last number from the
+# IP address. i.e. vpc_domain_id = 10 + ip address = 192.168.1.1
+# == vpc_role_priotity = 11
+#vpc_role_priotity: 20
+
+# vpc_source can be set per device in the host var file.
+# Default is the ansible_host IP from the inventory file.
+# vpc_destination must be set in the host var file or inventory file!
+# vpc_source: 192.168.1.1
+# vpc_destinaton: 192.168.1.2
+
+# Enable required Nexus features
+nxos_features:
+  - lacp
+  - vpc
+  - interface-vlan
+  - nxapi
+  - udld
+  - lldp
+
+# Configure global settings on Nexus devices
+global_settings:
+  - spanning-tree port type network default
+  - spanning-tree port type edge bpduguard default
+  - spanning-tree port type edge bpdufilter default
+  - port-channel load-balance src-dst l4port
+  - system default switchport
+  - system default switchport shutdown
+  - snmp-server community public group network-operator
+
+# Configure network interfaces
+mgmt_interface_list:
+  - member: "Ethernet1/32"
+    mode: "active"
+
+vpc_interface_list:
+  - member:  "Ethernet1/47"
+    mode: "active"
+  - member:  "Ethernet1/48"
+    mode: "active"
+
+CIMC_interface_list:
+  - member:  'Ethernet1/33'
+    description: "C240M5-1-P0"
+    layer: 'layer2'
+    duplex: "full"
+    speed: "auto"
+    mtu: '9216'
+    fec: 'rs-fec'
+    port_mode: 'trunk'
+    st_port_type: 'edge trunk'
+    vlans: "{{ all_vlans }}"
+
+FI_A_interface_list:
+  - member:  "Ethernet1/10"
+    mode: "active"
+  - member:  "Ethernet1/11"
+    mode: "active"
+#  - member:  "Ethernet1/59"
+#    mode: "active"
+
+FI_B_interface_list:
+  - member:  "Ethernet1/13"
+    mode: "active"
+  - member:  "Ethernet1/14"
+    mode: "active"
+#  - member:  "Ethernet1/60"
+#    mode: "active"
+
+storage_A_interface_list:
+  - member:  "Ethernet1/4"
+    mode: "active"
+  - member:  "Ethernet1/5"
+    mode: "active"
+
+storage_B_interface_list:
+  - member:  "Ethernet1/6"
+    mode: "active"
+  - member:  "Ethernet1/7"
+    mode: "active"
+
+storage_C_interface_list:
+  - member:  "Ethernet1/2"
+    mode: "active"
+
+storage_D_interface_list:
+  - member:  "Ethernet1/3"
+    mode: "active"
+
+uplink_interface_list:
+  - member:  "Ethernet1/1"
+    mode: "active"
+
+all_interfaces: "{{ mgmt_interface_list + vpc_interface_list + FI_A_interface_list + FI_B_interface_list + storage_A_interface_list + storage_B_interface_list + uplink_interface_list + storage_C_interface_list + storage_D_interface_list }}"
+#standalone_interfaces: "{{ CIMC_interface_list}}"
+
+# Configure Port-Channels
+#
+# The id must be same as port-channel number at the and of the interface
+# port-channelX  = id X
+#
+# st_port_type: Spanning-Tree port type can be: normal, network, edge,
+#               edge trunk. All ports connected to UCS should be edge trunk
+# 
+# The variables used in vlans are generated/overwritten in the Ansible play.  
+# Define the variable as listed here:
+# vlans:  all_vlans = combiation of VLAN IDs from all vlan_lists
+#         storage_vlans = VLAN IDs from storage_vlan_list
+#         mgmt_vlans = VLAN IDs from mgmt_vlan_list
+#         access_vlans = VLAN IDs from access_vlan_list
+storage_vlans: ''
+mgmt_vlans: ''
+access_vlans: ''
+all_vlans: ''
+vmotion_vlans: ''
+
+mgmt_PC:
+  - interface: "port-channel20"
+    description: "Link_to_management_POD"
+    id: "20"
+    speed: "auto"
+    duplex: "auto"
+    layer: 'layer2'
+    mtu: '1500'
+    port_mode: 'access'
+    st_port_type: 'network'
+    members: "{{ mgmt_interface_list }}"
+    vlans: "{{ mgmt_vlans }}"
+
+peerlink_PC:
+  - interface: "port-channel1"
+    description: "VPC_Peer_Link"
+    id: "1"
+    speed: "auto"
+    duplex: "auto"
+    layer: 'layer2'
+#    mtu: '1500'
+    st_port_type: 'network'
+    port_mode: 'trunk'
+    members: "{{ vpc_interface_list }}"
+    vlans: "{{ all_vlans }}"
+
+FI_A_PC:
+  - interface: "port-channel11"
+    description: "UCS_Fabric_Interconnect_A"
+    id: "11"
+    speed: "auto"
+    duplex: "full"
+    layer: 'layer2'
+    mtu: '9216'
+    st_port_type: 'edge trunk'
+    port_mode: 'trunk'
+    members: "{{ FI_A_interface_list }}"
+    vlans: "{{ all_vlans }}"
+
+FI_B_PC:
+  - interface: "port-channel12"
+    description: "UCS_Fabric_Interconnect_B"
+    id: "12"
+    speed: "auto"
+    duplex: "full"
+    layer: 'layer2'
+    mtu: '9216'
+    st_port_type: 'edge trunk'
+    port_mode: 'trunk'
+    members: "{{ FI_B_interface_list }}"
+    vlans: "{{ all_vlans }}"
+
+storage_A_PC:
+  - interface: "port-channel17"
+    description: "Storage_Controller_A"
+    id: "17"
+    speed: "auto"
+    duplex: "auto"
+    layer: 'layer2'
+    mtu: '9216'
+    port_mode: 'trunk'
+    members: "{{ storage_A_interface_list }}"
+    vlans: "{{ storage_vlans }}"
+
+storage_B_PC:
+  - interface: "port-channel18"
+    description: "Storage_Controller_B"
+    id: "18"
+    speed: "auto"
+    duplex: "auto"
+    layer: 'layer2'
+    mtu: '9216'
+    port_mode: 'trunk'
+    members: "{{ storage_B_interface_list }}"
+    vlans: "{{ storage_vlans }}"
+
+storage_C_PC:
+  - interface: "port-channel19"
+    description: "Storage_Controller_C"
+    id: "19"
+    speed: "auto"
+    duplex: "auto"
+    layer: 'layer2'
+    mtu: '9216'
+    port_mode: 'trunk'
+    members: "{{ storage_C_interface_list }}"
+    vlans: "{{ storage_vlans }}"
+
+storage_D_PC:
+  - interface: "port-channel20"
+    description: "Storage_Controller_D"
+    id: "20"
+    speed: "auto"
+    duplex: "auto"
+    layer: 'layer2'
+    mtu: '9216'
+    port_mode: 'trunk'
+    members: "{{ storage_D_interface_list }}"
+    vlans: "{{ storage_vlans }}"
+
+uplink_PC:
+  - interface: "port-channel30"
+    description: "Uplink_2_TOR"
+    id: "30"
+    speed: "auto"
+    duplex: "auto"
+    layer: 'layer2'
+    mtu: '9216'
+    port_mode: 'trunk'
+    st_port_type: 'network'
+    members: "{{ uplink_interface_list }}"
+    vlans: "{{ all_vlans }}"
+
+all_port_channels: "{{ peerlink_PC + mgmt_PC + FI_A_PC + FI_B_PC + storage_A_PC + storage_B_PC +uplink_PC + storage_C_PC + storage_D_PC }}"
+
+# List of port-channels where all VLANs are configured
+pc_4_all_vlans: "{{ FI_A_PC + FI_B_PC + uplink_PC }}"
+
+
+###############################################################################
+#
+# MDS | MDS | MDS | MDS | MDS | MDS | MDS | MDS | MDS | MDS | MDS | MDS | MDS
+#
+###############################################################################
+#
+
+# List of features to be enabled.  By defaul npiv and fport-channel-trunk are enabled
+mds_features:
+    - npiv
+    - fport-channel-trunk
+#
+# Interfaces in Use
+#
+storage_interface_list:
+ # AFF A400
+    - interface: "fc1/7"
+      speed: "auto"
+    - interface: "fc1/8"
+      speed: "auto"
+ # FAS 8040
+    - interface: "fc1/5"
+      speed: "auto"
+    - interface: "fc1/6"
+      speed: "auto"
+#
+ucs_interface_list:
+    - interface: "fc1/1"
+      speed: "32000"
+    - interface: "fc1/2"
+      speed: "32000"
+    - interface: "fc1/3"
+      speed: "32000"
+    - interface: "fc1/4"
+      speed: "32000"
+#
+port_channel_speed: "32000"
+#
+
+##############################################
+#
+# MDS-A related settings
+#
+mds_a_port_channel_id: '1'
+zoneset_a_name: 'Fabric-A'
+zone_a_name: 'Infra-SVM-Fabric-A'
+
+device_alias_a_list:
+  - device_name: Infra-SVM-lif01a
+    pwwn: "{{ storage_node1_a }}"
+    dev_type: target
+  - device_name: Infra-SVM-lif02a
+    pwwn: "{{ storage_node2_a }}"
+    dev_type: target
+  - device_name: Host-FCP-01-A
+    pwwn: "{{ wwn_pool_list[1].first_address }}"
+    dev_type: initiator
+
+
+##############################################
+#
+# MDS-B related settings
+#
+mds_b_port_channel_id: '2'
+zoneset_b_name: 'Fabric-B'
+zone_b_name: 'Infra-SVM-Fabric-B'
+
+device_alias_b_list:
+  - device_name: Infra-SVM-lif01b
+    pwwn: "{{ storage_node1_b }}"
+    dev_type: target
+  - device_name: Infra-SVM-lif02b
+    pwwn: "{{ storage_node2_b }}"
+    dev_type: target
+  - device_name: Host-FCP-01-B
+    pwwn: "{{ wwn_pool_list[1].first_address }}"
+    dev_type: initiator
+
+###############################################################################
+#
+# NTAP | NTAP | NTAP | NTAP | NTAP | NTAP | NTAP | NTAP | NTAP | NTAP | NTAP 
+#
+###############################################################################
+#
+cluster_nodes:
+  - 'wdf02-filer-node01'
+  - 'wdf02-filer-node02'
+
+nfs_ports:
+  - 'a0d'
+
+nfs_vlans:
+  - '182'
+
+pri_node: 'wdf02-filer-node02'
+pri_aggr: "aggr_node02"
+
+sf_svm_name: "pod4_nfs"
+
+sf_nfs_lif_address: "172.18.2.10"
+sf_nfs_lif_netmask: "255.255.255.0"
+
+sf_nfs_vol_size: "1073741824000"
+sf_nfs_vol_size_unit: "b"
+
+
+
+# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# ###########################################################
+# #       DO NOT CHANGE ANY PARAMETER BELOW THIS POINT      #
+# ###########################################################
+# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+
+# BIOS settings for SAP HANA server as tested and certified
+# 
+# 18. Configure BIOS Policy for SAP HANA based on this settings:
+bios_setting_list:
+    - name: 'Intel HyperThreading Tech'
+      mo_token: 'tokn-featr-Intel HyperThreading Tech/tokn-param-IntelHyperThread'
+      mo_setting: 'Enabled'
+    - name: 'Enhanced Intel SpeedStep Tech'
+      mo_token: 'tokn-featr-Enhanced Intel SpeedStep Tech/tokn-param-EnhancedIntelSpeedStep'
+      mo_setting: 'Enabled'
+    - name: 'Intel Virtualization Technology'
+      mo_token: 'tokn-featr-Intel Virtualization Technology/tokn-param-IntelVT'
+      mo_setting: 'Disabled'
+    - name: 'Intel VT for directed IO'
+      mo_token: 'tokn-featr-Intel VT for directed IO/tokn-param-IntelVTD'
+      mo_setting: 'Disabled'
+    - name: 'CPU Performance'
+      mo_token: 'tokn-featr-CPU Performance/tokn-param-CPUPerformance'
+      mo_setting: 'Custom'
+    - name: 'LLC Prefetch'
+      mo_token: 'tokn-featr-Processor Prefetch Config/tokn-param-LLCPrefetch'
+      mo_setting: 'Disabled'
+    - name: 'Power Technology'
+      mo_token: 'tokn-featr-Processor Energy Configuration/tokn-param-CPUPowerManagement'
+      mo_setting: 'Custom'
+    - name: 'Intel Turbo Boost Tech'
+      mo_token: 'tokn-featr-Intel Turbo Boost Tech/tokn-param-IntelTurboBoostTech'
+      mo_setting: 'Enabled'
+    - name: 'P STATE Coordination'
+      mo_token: 'tokn-featr-P STATE Coordination/tokn-param-PsdCoordType'
+      mo_setting: 'HW-ALL'
+    - name: 'Energy Performance'
+      mo_token: 'tokn-featr-Processor Energy Configuration/tokn-param-CpuEngPerfBias'
+      mo_setting: 'Performance'
+    - name: 'Processor C state - Disabled'
+      mo_token: 'tokn-featr-Processor C State/tokn-param-ProcessorCstate'
+      mo_setting: 'Disabled'
+    - name: 'Processor C1E - Disabled'
+      mo_token: 'tokn-featr-Processor C1E/tokn-param-ProcessorC1E'
+      mo_setting: 'Disabled'
+    - name: 'Processor C3 Report - Disabled'
+      mo_token: 'tokn-featr-Processor C3 Report/tokn-param-ProcessorC3Report'
+      mo_setting: 'Disabled'
+    - name: 'Processor C6 Report'
+      mo_token: 'tokn-featr-Processor C6 Report/tokn-param-ProcessorC6Report'
+      mo_setting: 'Disabled'
+    - name: 'Processor C7 Report - Disabled'
+      mo_token: 'tokn-featr-Processor C7 Report/tokn-param-ProcessorC7Report'
+      mo_setting: 'Disabled'
+    - name: 'Package C State Limit'
+      mo_token: 'tokn-featr-Package C State Limit/tokn-param-PackageCstateLimit'
+      mo_setting: 'C0-C1-State'
+    - name: 'Energy Performance Tuning'
+      mo_token: 'tokn-featr-Energy Performance Tuning/tokn-param-PwrPerfTuning'
+      mo_setting: 'OS'
+    - name: 'CPU Hardware Power Management'
+      mo_token: 'tokn-featr-CPU Hardware Power Management/tokn-param-CpuHWPM'
+      mo_setting: 'HWPM-Native-Mode'
+    - name: 'Workload Configuration'
+      mo_token: 'tokn-featr-Workload Configuration/tokn-param-WorkLdConfig'
+      mo_setting: 'Balanced'
+    - name: 'Autonomous Core C-state'
+      mo_token: 'tokn-featr-Processor C State/tokn-param-AutoCCState'
+      mo_setting: 'Disabled'
+    - name: 'NUMA optimized'
+      mo_token: 'tokn-featr-NUMA optimized/tokn-param-NUMAOptimize'
+      mo_setting: 'Enabled'
+    - name: 'IMC Inteleave'
+      mo_token: 'tokn-featr-Interleave Configuration/tokn-param-IMCInterleave'
+      mo_setting: '1-way-Interleave'
+    - name: 'XPT Prefetch'
+      mo_token: 'tokn-featr-Processor Prefetch Config/tokn-param-XPTPrefetch'
+      mo_setting: 'Auto'
+    - name: 'UPI Prefetch'
+      mo_token: 'tokn-featr-Processor Prefetch Config/tokn-param-KTIPrefetch'
+      mo_setting: 'Enabled'
+    - name: 'Sub NUMA Clustering'
+      mo_token: 'tokn-featr-Interleave Configuration/tokn-param-SNC'
+      mo_setting: 'Enabled'
+    - name: 'Memory RAS configuration'
+      mo_token: 'tokn-featr-SelectMemory RAS configuration/tokn-param-SelectMemoryRAS'
+      mo_setting: 'Maximum-Performance'
+    # From VMware CVD
+    - name: 'Enable CDN Control'
+      mo_token: 'tokn-featr-Consistent Device Name Control/tokn-param-cdnEnable'
+      mo_setting: 'Enabled'
+    - name: 'Disable Quiet Boot'
+      mo_token: 'tokn-featr-Quiet Boot/tokn-param-QuietBoot'
+      mo_setting: 'Disabled'
+    - name: 'Direct Cache Access'
+      mo_token: 'tokn-featr-Direct Cache Access/tokn-param-DirectCacheAccess'
+      mo_setting: 'Enabled'
+    - name: 'DRAM Clock Throttling - Performance'
+      mo_token: 'tokn-featr-DRAM Clock Throttling/tokn-param-DRAMClockThrottling'
+      mo_setting: 'Performance'
+    - name: 'Frequency Floor Override - Enabled'
+      mo_token: 'tokn-featr-Frequency Floor Override/tokn-param-CpuFreqFloor'
+      mo_setting: 'Enabled'
+    - name: 'Processor Energy Configuration - Performance'
+      mo_token: 'tokn-featr-Processor Energy Configuration/tokn-param-CpuEngPerfBias'
+      mo_setting: 'Performance'
+    - name: 'LV DDR Mode - Performance-Mode'
+      mo_token: 'tokn-featr-LvDIMM Support/tokn-param-LvDDRMode'
+      mo_setting: 'Performance-Mode'
+
+
+###################################
+#
+#
+###################################################################
+##
+## Default Required for solution automation
+##
+## Please do not change or delete a variable below this line !
+##
+## ----------------------------------------------------------------
+#
+# The Fabric interconnect configured by Ansible is NOT 6200 series.
+setup_6200: 'false'
+
+# Define default parameter for this setup to allow users to remove variables.
+# This takes care that the variables required by the modules are defined.
+
+lan_assign_order: 'sequential'
+san_assign_order: 'sequential'
+
+# Default setup includes infrastructure configuration, like ports and power
+# policies.
+def_conf_ci: 'true'
+configure_ci: "{{ setup_ci | default(def_conf_ci) }}"
+
+# Default setup methode is local only - no iSCSI and no FC configuration.
+def_conf_local: 'true'
+def_conf_fc: 'false'
+def_conf_nfs: 'true'
+def_conf_iscsi: 'false'
+configure_local: "{{ setup_local | default(def_conf_local) }}"
+configure_iscsi: "{{ setup_iscsi | default(def_conf_local) }}"
+configure_fc: "{{ setup_fc | default(def_conf_local) }}"
+configure_nfs: "{{ setup_nfs | default(def_conf_nfs) }}"
+
+
+# Default number of FC ports to be configure is 8
+def_fc_ports: '8'
+fc_port_number: "{{ number_fc_ports | default(def_fc_ports) }}"
+
+# Default setup: Single Uplink network, No Disjoint L2 no VLAN groups
+def_dis_L2: 'false'
+configure_disjoint_l2: "{{ setup_disjoint_l2 | default(def_dis_L2) }}"
+

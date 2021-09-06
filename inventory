@@ -1,0 +1,114 @@
+
+###############################################
+# Global
+#
+[all:vars]
+state=present
+nx_state=enabled
+ucs_state=present
+ansible_network_os=nxos
+nx_cfg_state=replaced
+vcenter_hostname=172.20.0.15 
+vcenter_username=administrator@vsphere.wdf02-4-dmz.local 
+vcenter_password=SAPhana20!
+
+[vcenter]
+vcenter ansible_host=172.20.0.15 
+
+[vcenter:vars]
+ansible_connection=ssh
+ansible_user=root
+ansible_ssh_pass=SAPhana20!
+ansible_ssh_common_args='-o StrictHostKeyChecking=no'
+
+###############################################
+# POD 2 / RACK 2 / SAP HANA on HX
+#
+[pod2]
+ucs_pod2 ucs_hostname=172.23.1.9 ucs_username=admin ucs_password=SAPhana10!
+nexus_a_pod2 ansible_host=172.23.1.250 ansible_user=admin ansible_password=ucs4sap! 
+nexus_b_pod2 ansible_host=172.23.1.251 ansible_user=admin ansible_password=ucs4sap! 
+
+###############################################
+# POD 3 / RACK 3 / SAP DataIntelligence Platform on CCP
+#
+[pod3]
+ucs_pod3 ucs_hostname=172.24.1.10 ucs_username=admin ucs_password=SAPhana10!
+nexus_a_pod3 ansible_host=172.24.1.253 ansible_user=admin ansible_password=ucs4sap! 
+nexus_b_pod3 ansible_host=172.24.1.254 ansible_user=admin ansible_password=ucs4sap! 
+
+###############################################
+# POD 4 / RACK 4 / FlexPod and Shopfloor
+#
+[pod4_vmware:children]
+pod4
+vcenter
+
+[pod4:children]
+vcenter
+pod4_ucs
+pod4_network
+pod4_tor
+pod4_san
+pod4_esx
+pod4_ntap
+
+[pod4_esx]
+## esx01 esxi_hostname=esx01.flexpod.wdf02-4-dmz.local esxi_username=root esxi_password=SAPhana20! mgmt_ip=172.18.1.101 vmotion_ip=172.18.3.101  nfs_ip=172.18.2.101
+## esx02 esxi_hostname=esx02.flexpod.wdf02-4-dmz.local esxi_username=root esxi_password=SAPhana20! mgmt_ip=172.18.1.102 vmotion_ip=172.18.3.102  nfs_ip=172.18.2.102
+## esx03 esxi_hostname=esx03.flexpod.wdf02-4-dmz.local esxi_username=root esxi_password=SAPhana20! mgmt_ip=172.18.1.103 vmotion_ip=172.18.3.103  nfs_ip=172.18.2.103
+esx04.flexpod.wdf02-4-dmz.local esxi_hostname=esx04.flexpod.wdf02-4-dmz.local esxi_username=root esxi_password=SAPhana20! mgmt_ip=172.18.1.104 vmotion_ip=172.18.3.104  nfs_ip=172.18.2.104
+
+[pod4_ucs]
+ucs_pod4 ucs_hostname=172.18.1.10 ucs_username=admin ucs_password=SAPhana20! 
+
+[pod4_tor]
+n5k_tor_pod4 ansible_host=172.18.1.1 ansible_user=admin ansible_password=SAPhana20! 
+
+[pod4_network]
+nexus_a_pod4 ansible_host=172.18.1.2 ansible_user=admin ansible_password=SAPhana20! vpc_destination=172.18.1.3
+nexus_b_pod4 ansible_host=172.18.1.3 ansible_user=admin ansible_password=SAPhana20! vpc_destination=172.18.1.2
+
+[pod4_san]
+mds_a_pod4 ansible_host=172.18.1.4 ansible_user=admin ansible_password=SAPhana20! 
+mds_b_pod4 ansible_host=172.18.1.5 ansible_user=admin ansible_password=SAPhana20!  
+
+[pod4_ntap]
+ntap_fas8040_pod4 ansible_host=172.18.1.20 ansible_user=admin ansible_password=SAPhana20!
+#ntap_aff400_pod4 ansible_host=172.18.1.25 ansible_user=admin ansible_password=SAPhana20!
+
+###############################################
+# POD 5 / RACK 5 / Infrastructure
+#
+[pod5:children]
+pod5_ucs
+pod5_network
+
+[pod5_ucs]
+ucs_pod5 ucs_hostname=ucsm.wdf02-4-dmz.local ucs_username=admin ucs_password=SAPhana20! 
+
+[pod5_network]
+nexus_a_pod5 ansible_host=n9k-b.wdf02-4-dmz.local ansible_user=admin ansible_password=SAPhana20!  vpc_destination=172.20.1.252
+nexus_b_pod5 ansible_host=n9k-b.wdf02-4-dmz.local ansible_user=admin ansible_password=SAPhana20!  vpc_destination=172.20.1.251
+
+###############################################
+# POD 6 / RACK 6
+#
+[pod6_sap:children]
+pod6
+
+[pod6:children]
+pod6_ucs
+pod6_network
+#pod6_tor
+
+[pod6_ucs]
+ucs_pod6 ucs_hostname=172.21.1.10 ucs_username=admin ucs_password=SAPhana10!
+
+[pod6_tor]
+n5k_tor_pod6 ansible_host=172.21.1.1 ansible_user=admin ansible_password=ucs4sap!  vpc_destination=172.21.1.3
+
+[pod6_network]
+nexus_c_pod6 ansible_host=172.21.1.21 ansible_user=admin ansible_password=SAPhana10!  vpc_destination=172.21.1.22
+nexus_d_pod6 ansible_host=172.21.1.22 ansible_user=admin ansible_password=SAPhana10!  vpc_destination=172.21.1.21
+

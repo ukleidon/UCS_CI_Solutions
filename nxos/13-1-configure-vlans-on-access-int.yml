@@ -1,0 +1,36 @@
+---
+################################################################################
+#
+# Title:        13-1-configure-vlans-on-access-int.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure VLANs on access ports
+#
+# Variables:    mgmt_pool_name = Name of the Management IP pool
+#
+#               ucs_org = Name of the Sub-Oganization
+# Modules:      nxos_
+#
+# URLs:         https://galaxy.ansible.com/cisco/nxos
+#               https://developer.cisco.com/
+#
+# Built-in help:
+# ansible-doc cisco.nxos.
+#
+################################################################################
+#
+#- hosts: nexus* n5k*
+#  connection: network_cli
+#  gather_facts: no
+#  tasks:
+    - name: 13-1 Configure VLAN on access ports
+      nxos_l2_interfaces:
+        config:
+          - name: "{{ item.member }}"
+            access: 
+              vlan: "{{ item.vlans }}"
+        state: "{{ nx_cfg_state |default(omit) }}"
+      loop: "{{ access_interface_list }}"
+      when: access_interface_list is defined
+      loop_control:
+          label: "Interface: {{ item.member }}, VLANs: {{ item.vlans }}"

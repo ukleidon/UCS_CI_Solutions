@@ -1,0 +1,38 @@
+---
+################################################################################
+#
+# Title:        01-mds-features.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure features on MDS switches
+#
+# Variables:    features = List of featues to configure
+#               nx_state = enabled or disabled state
+#
+# Modules:      nxos_feature
+#
+# URLs:         https://galaxy.ansible.com/cisco/mds
+#
+# Built-in help:
+# ansible-doc cisco.mds.nxos_feature
+#
+################################################################################
+#
+#- hosts: mds*
+#  connection: network_cli
+#  gather_facts: no
+#  tasks:
+    - name: 01 Enable MDS features
+      nxos_feature:
+        state: "{{ nx_state }}"
+        feature: "{{ item }}"
+      loop:  "{{ mds_features }}"
+      when: mds_features is defined and nx_state == 'enabled'
+
+    - name: 01 Disable MDS features
+      nxos_feature:
+        state: 'disabled'
+        feature: "{{ item }}"
+      loop:  "{{ mds_features }}"
+      when: mds_features is defined and nx_state == 'disabled'
+

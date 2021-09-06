@@ -1,0 +1,65 @@
+---
+################################################################################
+#
+# Create Service Profile, configure SAN zoning, create custom ISO and kickstart file,
+# create vmedia policy, unbind SP from SP-temp, add vmedia policy to SP, boot server,
+# bind SP to SP-templ, remove temp files.
+
+###  Create Service Profile and get WWNNs 
+- hosts: ucs*
+  connection: local
+  collections:
+  - cisco.ucs
+  gather_facts: no
+  tasks:
+     # Create ServiceProfile from ServiceProfileTemplate
+     - include_tasks: ucsm/50-sp-from-template.yml
+     # Get a list of all ServiceProdiles with informations
+     # Get a list of all WWNNs with SP-Name, Fabric, and Vsan information 
+     - include_tasks: ucsm/90-get-spinfo.yml
+     - include_tasks: ucsm/89-get-wwnn.yml
+
+- hosts: mds*
+  connection: network_cli
+  gather_facts: no
+  tasks:
+     # Create SAN zoning for the created ServiceProfile
+     - include_tasks: mds/09-mds-zoneset-ucs.yml
+     # Activate the changed Zoneset
+     - include_tasks: mds/10-mds-zoneset-activate.yml
+
+- hosts: esx*
+  connection: local
+  gather_facts: no
+  tasks:
+     # Create custom ISO image and Kickstartfile for unattended installation
+     # Writes a file with all information for the required vMedia policy
+     - include_tasks: os-inst/01-create-esxi-custom-iso.yml
+
+#
+- hosts: ucs*
+  connection: local
+  collections:
+  - cisco.ucs
+  gather_facts: no
+  tasks:
+     # Create vMedia Policy for unattended installation with information from file
+     - include_tasks: ucsm/28-vmedia-policy.yml
+     # Unbind ServiceProfile from ServiceProfileTemplate
+     - include_tasks: ucsm/90-unbind-sp-from-templ.yml
+     # Add vMedia policy to the ServiceProfile
+     - include_tasks: ucsm/90-add-vmedia-policy.yml
+     # Get management IP addresses for the ServiceProfiles 
+     - include_tasks: ucsm/90-get-ipinfo.yml
+     # Power on the server for OS installation
+     - include_tasks: ucsm/91-ipmi-power.yml
+#     - include_tasks: ucsm/
+#     - include_tasks: ucsm/
+#     - include_tasks: ucsm/
+
+#- hosts: esx*
+#  connection: local
+#  gather_facts: no
+#  tasks:
+     # Wait until OS installation is finished (check ssh connection to host)
+     - include_tasks: ucsm/91-wait-for-ssh.yml

@@ -1,0 +1,35 @@
+---
+################################################################################
+#
+# Title:        10-mds-zoneset-activate.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  activate zoneset on MDS switch
+#
+# Variables:    zoneset_name
+#               vsan_id
+#
+# Modules:      nxos_zone_zoneset
+#
+# URLs:         https://galaxy.ansible.com/cisco/mds
+#
+# Built-in help:
+# ansible-doc cisco.mds.nxos_zone_zoneset
+#
+################################################################################
+#
+#- hosts: mds*
+#  connection: network_cli
+#  gather_facts: no
+#  tasks:
+
+    - name: Activate Zoneset
+      nxos_zone_zoneset:
+        zone_zoneset_details:
+          - vsan: "{{ vsan_id }}"
+            mode: enhanced
+            zoneset:
+              - name: "{{ zoneset_name }}"
+                action: activate
+                members:
+                  - name: "{{ zone_name }}"

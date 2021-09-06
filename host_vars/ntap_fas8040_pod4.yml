@@ -1,0 +1,50 @@
+---
+
+# Role variables as per NetApp's prescriptive guidance
+
+# This can be overridden by a var-file.yml at the command line
+
+# User's input variables
+
+cluster_name: FAS8040
+nodes:
+ - FAS8040-01
+ - FAS8040-02
+
+## The ports listed here will be removed from management domain
+node_ports:
+  - {node_name: "{{ nodes[0] }}", ports: ["e0i","e0j","e0k","e0l","e3a","e3b","e4a","e4b"]}
+  - {node_name: "{{ nodes[1] }}", ports: ["e0i","e0j","e0k","e0l","e3a","e3b","e4a","e4b"]}
+
+node_data_ports:
+  - {node_name: "{{ nodes[0] }}", ports: ["e3a","e3b"]}
+  - {node_name: "{{ nodes[1] }}", ports: ["e3a","e3b"]}
+
+# Network settings for the Service processor
+sp:
+  - {node: "{{ nodes[0] }}", ip: "172.18.1.190", mask: "255.255.255.0", gateway: "172.18.1.1"}
+  - {node: "{{ nodes[1] }}", ip: "172.18.1.191", mask: "255.255.255.0", gateway: "172.18.1.1"}
+
+# Setting default GW for management access
+ontap_route_parameters:
+  - {state: present, vserver: FAS8040, destination: "0.0.0.0/0", gateway: "172.18.1.1", metric: "20"}
+
+# Default variables
+
+port_mode: "cna"
+port_type:  "target"
+cluster_mgmt_auto_revert: true
+cluster_mgmt_interface: cluster_mgmt
+data_aggregates:
+  - {aggr_name: aggr0_FAS8040_01, diskcount: 10}
+  - {aggr_name: aggr0_FAS8040_02, diskcount: 10}
+
+#ntp_server:
+#  - 172.20.0.13
+#  - 172.20.0.51
+
+timezone: "US/Eastern"
+
+autosupport_vars:
+  mail_hosts: "mailhost"
+  noteto: "admin@netapp.com"

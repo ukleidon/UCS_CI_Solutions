@@ -1,0 +1,38 @@
+---
+################################################################################
+#
+# Title:        03-configure-vlan.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure VLAN on NXOS devices
+#
+# Variables:    vlan_list = List of VLAN to configure
+#               List must provide VLAN ID and VLAN name to configure
+#
+# Modules:      nxos_vlans
+#
+# URLs:         https://galaxy.ansible.com/cisco/nxos
+#               https://developer.cisco.com/
+#
+# Built-in help:
+# ansible-doc cisco.nxos.nxos_vlans
+#
+################################################################################
+#
+#
+#- hosts: nexus* n5k*
+#  connection: network_cli
+#  gather_facts: no
+#  tasks:
+    - name: 03 Configure VLAN on Nexus
+      nxos_vlans:
+        config:
+          - vlan_id: "{{ item.id }}"
+            name: "{{ item.name }}"
+            enabled: "{{ item.nx_enabled | default(omit) }}"
+            state: "{{ item.nx_state | default(omit) }}"
+        state: "{{ nx_cfg_state }}"
+      loop: "{{ vlan_list }}"
+      when: vlan_list is defined
+      loop_control: 
+         label: "{{ item.name }}: {{ item.id }}"

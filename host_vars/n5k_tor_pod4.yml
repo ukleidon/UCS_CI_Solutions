@@ -1,0 +1,176 @@
+---
+
+# file: hosts_vars/nexus_tor
+
+# Variables File for UCS configuration WDF02-4-POD4 FLEXPOD Solution
+#  TOP OF RACK Switch
+#
+#------------------------------------------------------------------------------
+# Setup Converged Infrastructure basics ?
+#
+# Define if the day0/day1 configuration of the hardware components like,
+# server ports, uplink ports, DNS server, power policies and others 
+# are configured or not. 
+# In case this parameter is not set to 'true', only the workload specific
+# configuration, like BIOS policy, storage policy, ServiceProfileTemplate
+# are configured. The parameter is NOT used in any working modules, it is 
+# only used in the main playbook file importing other playbooks.
+#
+setup_ci: 'true'
+
+# In case a single Nexus switch is used instead of a VPC pair.
+#
+single_nexus: 'true'
+lan_state: 'present'
+
+
+#------------------------------------------------------------------------------
+
+default_gw: '172.131.24.1'
+
+
+###############################################################################
+#
+# NEXUS Nexus nexus NEXUS Nexus nexus
+#
+# If default_pm = trunk, use port_mode 'access' for interfaces which are not
+#       configured as trunk mode
+default_pm: 'trunk'
+# Default Spanning-Tree Port Type
+default_stpt: 'edge trunk'
+# Default Interface Mode layer2/layer3
+default_layer: 'layer2'
+# Default Interface Status True = no shut / False = shut
+default_enabled: 'True'
+
+# Configure global settings on Nexus devices
+global_settings:
+#  - spanning-tree port type network default
+  - spanning-tree port type edge bpduguard default
+  - spanning-tree port type edge bpdufilter default
+#  - no port-channel load-balance src-dst l4port
+  - system default switchport
+  - system default switchport shutdown
+  - snmp-server community public group network-operator
+
+# Configure network interfaces
+access_interface_list:
+  - member: "Ethernet1/1"
+    description: "FI-B-mgmt0"
+    duplex: "full"
+    speed: "auto"
+    mtu: '1500'
+    port_mode: 'access'
+    st_port_type: 'normal'
+    vlans: "{{ oob_vlan_id }}"
+
+  - member: "Ethernet1/2"
+    description: "FI-A-mgmt0"
+    duplex: "full"
+    speed: "auto"
+    mtu: '1500'
+    port_mode: 'access'
+    st_port_type: 'normal'
+    vlans: "{{ oob_vlan_id }}"
+
+  - member: "Ethernet1/3"
+    description: "MDS-B-mgmt0"
+    duplex: "full"
+    speed: "auto"
+    mtu: '1500'
+    port_mode: 'access'
+    st_port_type: 'normal'
+    vlans: "{{ oob_vlan_id }}"
+
+  - member: "Ethernet1/4"
+    description: "MDS-A-mgmt0"
+    duplex: "full"
+    speed: "auto"
+    mtu: '1500'
+    port_mode: 'access'
+    st_port_type: 'normal'
+    vlans: "{{ oob_vlan_id }}"
+
+  - member: "Ethernet1/6"
+    description: "N9K-B-mgmt0"
+    duplex: "full"
+    speed: "auto"
+    mtu: '1500'
+    port_mode: 'access'
+    st_port_type: 'normal'
+    vlans: "{{ oob_vlan_id }}"
+
+  - member:  "Ethernet1/17"
+    description: "Link_2_central_n5k"
+    duplex: "full"
+    speed: "auto"
+    mtu: '1500'
+    port_mode: 'access'
+    st_port_type: 'normal'
+    vlans: '4'
+
+  - member: "Ethernet1/7"
+    description: "N9K-A-mgmt0"
+    duplex: "full"
+    speed: "auto"
+    mtu: '1500'
+    port_mode: 'access'
+    st_port_type: 'normal'
+    vlans: "{{ oob_vlan_id }}"
+
+trunk_interface_list:
+  - member: "Ethernet1/27"
+    description: "Test"
+    duplex: "full"
+    speed: "auto"
+    mtu: '1500'
+    port_mode: 'trunk'
+    st_port_type: 'normal'
+    vlans: "{{ mgmt_vlans }}"
+
+downlink_list:
+  - member:  'Ethernet1/31'
+    mode: "active"
+  - member:  'Ethernet1/32'
+    mode: "active"
+
+all_interfaces: "{{ downlink_list }}"
+standalone_interfaces: "{{ access_interface_list + trunk_interface_list }}"
+
+# Configure Port-Channels
+#
+# The id must be same as port-channel number at the and of the interface
+# port-channelX  = id X
+#
+# st_port_type: Spanning-Tree port type can be: normal, network, edge,
+#               edge trunk. All ports connected to UCS should be edge trunk
+# 
+# The variables used in vlans are generated/overwritten in the Ansible play.  
+# Define the variable as listed here:
+# vlans:  all_vlans = combiation of VLAN IDs from all vlan_lists
+#         storage_vlans = VLAN IDs from storage_vlan_list
+#         mgmt_vlans = VLAN IDs from mgmt_vlan_list
+#         access_vlans = VLAN IDs from access_vlan_list
+storage_vlans: ''
+mgmt_vlans: ''
+access_vlans: ''
+all_vlans: ''
+vmotion_vlans: ''
+
+downlink_PC:
+  - interface: "port-channel1"
+    description: "Link_to_N9Ks"
+    id: "1"
+    speed: "auto"
+    duplex: "full"
+    layer: 'layer2'
+    mtu: '1500'
+    st_port_type: 'network'
+    members: "{{ downlink_list }}"
+    vlans: "{{ all_vlans }}"
+
+all_port_channels: "{{ downlink_PC }}"
+
+# List of port-channels where all VLANs are configured
+pc_4_all_vlans: "{{ downlink_PC }}"
+

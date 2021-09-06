@@ -1,0 +1,41 @@
+---
+################################################################################
+#
+# Title:        20-configure-routing.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure static routing on TOR switches
+#
+# Variables:    
+#
+#               
+# Modules:      
+#
+# URLs:         https://galaxy.ansible.com/cisco/nxos
+#               https://developer.cisco.com/
+#
+# Built-in help:
+# ansible-doc cisco.nxos.
+#
+################################################################################
+#
+#
+#- hosts: nexus_tor* n5k_tor*
+#  connection: network_cli
+#  gather_facts: no
+#  tasks:
+   - name: 20 Configure routing into VLANs
+     nxos_config:
+       lines:
+         - ip route {{ item.net.split('/')[0] }}/{{ item.net.split('/')[1]|default(mask) }} vlan{{item.id}}
+     when: item.ip is defined
+     loop: "{{ vlan_list }}"
+     loop_control:
+       label: "VLAN: {{ item.id }}, VPC IP: {{ item.net|default(default_ip) }}"
+
+   - name: 20 Configure default route
+     nxos_config:
+       lines:
+         - ip route 0.0.0.0/0 {{default_gw}}
+     when: item.ip is defined
+

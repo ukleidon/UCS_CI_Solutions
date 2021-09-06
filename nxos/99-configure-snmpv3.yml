@@ -1,0 +1,44 @@
+---
+################################################################################
+#
+# Title:        99-configure-snmpv3.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure SNMPv3 options on NXOS devices for monitoring
+#
+# Variables:    
+#
+#               
+# Modules:      
+#
+# URLs:         https://galaxy.ansible.com/cisco/nxos
+#               https://developer.cisco.com/
+#
+# Built-in help:
+# ansible-doc cisco.nxos.
+#
+################################################################################
+#
+#
+#- hosts: nexus* n5k*
+#  connection: network_cli
+#  gather_facts: no
+#  tasks:
+  - name: SNMPv3 USER !Not idempotent because of priv credentials!
+    nxos_snmp_user:
+      user: "{{ snmpv3_name }}"
+      group: network-operator
+      authentication: "{{ snmpv3_authprot }}"
+      pwd: "{{ snmpv3_authpw }}"
+      encrypt: yes
+      privacy: "{{ snmpv3_privpw }}"
+    when: ansible_network_os == 'nxos'
+ 
+  - name: SYSLOG CONFIGURATION
+    nxos_config:
+      lines:
+        - logging server {{ telegrafhost }} 5 use-vrf management
+        - logging source-interface mgmt0
+        - logging message interface type ethernet description
+    when: ansible_network_os == 'nxos'
+

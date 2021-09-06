@@ -1,0 +1,71 @@
+---
+#------------------------------------------------------------------------------
+#
+# Nexus 9000 configuration Steps
+#
+- hosts: nexus* 
+  connection: network_cli
+  gather_facts: no
+  tasks:
+    # Backup the Nexus configuration to the local drive
+    - include_tasks: nxos/00-backup-config.yml
+      when: configure_ci == 'true'
+    # Configure NX-OS featues and global settings
+    - include_tasks: nxos/01-configure_features.yml
+      when: configure_ci == 'true'
+    - include_tasks: nxos/02-global-settings.yml
+      when: configure_ci == 'true'
+    # Configure VLANs, Ports and Port Channels
+    - include_tasks: nxos/03-create-vlan-list.yml
+    - include_tasks: nxos/03-configure-vlan.yml
+    - include_tasks: nxos/04-1-configure-eth-interface.yml
+    - include_tasks: nxos/06-configure-pc-interface.yml
+    - include_tasks: nxos/07-1-configure-port-channels.yml
+    - include_tasks: nxos/10-configure-vlans-on-pc.yml
+    - include_tasks: nxos/12-configure-port-mode.yml
+    - include_tasks: nxos/13-1-configure-vlans-on-access-int.yml
+    - include_tasks: nxos/15-configure-vlans-on-interfaces.yml
+    # Configure VPC
+    - include_tasks: nxos/16-configure-vpc.yml
+      when: configure_ci == 'true' 
+    - include_tasks: nxos/17-config-vpc-on-pc.yml
+      when: configure_ci == 'true'
+    # Configure monitoring and logging parameters
+    - include_tasks: nxos/99-configure-snmpv3.yml
+
+- hosts: n5k*
+  connection: network_cli
+  gather_facts: no
+  tasks:
+    # Backup the Nexus configuration to the local drive
+    - include_tasks: nxos/00-backup-config.yml
+      when: configure_ci == 'true'
+    # Configure NX-OS featues and global settings
+    - include_tasks: nxos/01-configure_features.yml
+      when: configure_ci == 'true'
+    - include_tasks: nxos/02-global-settings.yml
+      when: configure_ci == 'true'
+    # Configure VLANs, Ports and Port Channels
+    - include_tasks: nxos/03-create-vlan-list.yml
+    - include_tasks: nxos/03-configure-vlan.yml
+    - include_tasks: nxos/04-2-configure-eth-int-n5k.yml
+    - include_tasks: nxos/06-configure-pc-interface.yml
+    - include_tasks: nxos/07-2-configure-port-channels-n5k.yml
+    - include_tasks: nxos/10-configure-vlans-on-pc.yml
+    - include_tasks: nxos/12-configure-port-mode.yml
+    - include_tasks: nxos/13-1-configure-vlans-on-access-int.yml
+    - include_tasks: nxos/13-2-configure-vlans-on-n5k_int.yml
+    - include_tasks: nxos/99-configure-snmpv3.yml
+
+
+- hosts: nexus_tor* n5k_tor*
+  connection: network_cli
+  gather_facts: no
+  tasks:
+    # Backup the Nexus configuration to the local drive
+    - include_tasks: nxos/00-backup-config.yml
+      when: configure_ci == 'true'
+    # Configure VLAN Interfaces with IP addresses and the routing
+    - include_tasks: nxos/19-configure-vlan-interface.yml
+    - include_tasks: nxos/20-configure-routing.yml
+

@@ -1,0 +1,43 @@
+---
+################################################################################
+#
+# Title:        07-mds-da.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure device aliaces on MDS switch
+#
+# Variables:    device_alias_list
+#               
+#
+# Modules:      nxos_devicealias
+#
+# URLs:         https://galaxy.ansible.com/cisco/mds
+#
+# Built-in help:
+# ansible-doc cisco.mds.nxos_devicealias
+#
+################################################################################
+#
+#- hosts: mds*
+#  connection: network_cli
+#  gather_facts: no
+#  tasks:
+
+    - name: Create Device Alias
+      nxos_devicealias:
+        distribute: yes
+        mode: enhanced
+        da:
+          - { name: '{{  item.device_name  }}', pwwn: '{{  item.pwwn  }}'}
+      loop: "{{ device_alias_list }}"
+      when: nx_state == 'enabled'
+
+    - name: Remove Device Alias
+      nxos_devicealias:
+        distribute: yes
+        mode: enhanced
+        da:
+          - name: '{{  item.device_name  }}' 
+            remove: true
+      loop: "{{ device_alias_list }}"
+      when: nx_state == 'disabled'

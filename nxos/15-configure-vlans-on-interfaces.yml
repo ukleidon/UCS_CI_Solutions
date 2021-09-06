@@ -1,0 +1,53 @@
+---
+################################################################################
+#
+# Title:        15-configure-vlans-on-interfaces.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure VLAN on trunk ports - Nexus 9000 series devices
+#
+# Variables:    
+#
+#              
+# Modules:     
+#
+# URLs:         https://galaxy.ansible.com/cisco/nxos
+#               https://developer.cisco.com/
+#
+# Built-in help:
+# ansible-doc cisco.nxos.
+#
+################################################################################
+#
+#
+#- hosts: nexus*
+#  connection: network_cli
+#  gather_facts: no
+#  tasks:
+  # This task configues the VLANs on the trunk ports
+    - name: 15 Configure VLANS on stand-alone trunk ports
+      nxos_l2_interfaces:
+        config:
+          - name: "{{ item.member }}"
+            trunk:
+              native_vlan: "{{ native_vlan_id }}"
+              allowed_vlans: "{{ item.vlans }}"
+        state: "{{ nx_cfg_state |default(omit) }}"
+      when: state == 'present'
+      loop: "{{ trunk_interface_list }}"
+      when: trunk_interface_list is defined
+      loop_control:
+          label: "Interface: {{ item.member }}, VLANs: {{ item.vlans }}"
+
+  # This task configues the VLANs on the trunk ports
+    - name: 15 Remove VLANS from ports and port-channels
+      nxos_config:
+        lines:
+          - switchport trunk allowed vlan remove {{ item.vlans }}
+        parents: interface {{ item.member }}
+      when: state == 'absent'
+      loop: "{{ trunk_interface_list }}"
+      when: trunk_interface_list is defined
+      loop_control:
+          label: "PC: {{ item.member }}, VLANs: {{ item.vlans }}"
+

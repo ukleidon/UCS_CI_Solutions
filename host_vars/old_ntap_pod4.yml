@@ -1,0 +1,30 @@
+cluster_nodes:
+  - "wdf02-filer-node01"
+  - "wdf02-filer-node02"
+
+nfs_ports:
+  - "a0d"
+
+nfs_vlans:
+  - 185
+  - 186
+  - 187
+
+dns_domains:
+  - "wdf02-4-dmz.local"
+
+dns_servers:
+  - "172.20.0.50"
+  - "172.20.0.51"
+
+pri_node: "wdf02-filer-node02"
+
+pri_aggr: "aggr_node02"
+
+sf_svm_name: "sf_svm_test"
+
+sf_nfs_lif_address: "172.20.2.200"
+sf_nfs_lif_netmask: "255.255.255.0"
+
+sf_nfs_vol_size: "107374182400"
+sf_nfs_vol_size_unit: "b"

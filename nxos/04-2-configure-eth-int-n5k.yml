@@ -1,0 +1,48 @@
+---
+################################################################################
+#
+# Title:        04-2-configure-eth-int-n5k.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure Ethernet Interfaces on Nexus 5000 platform
+#
+# Variables:    all_interfaces = List of all interfaces to configure
+#
+# Modules:      nxos_interfaces
+#
+# URLs:         https://galaxy.ansible.com/cisco/nxos
+#               https://developer.cisco.com/
+#
+# Built-in help:
+# ansible-doc cisco.nxos.
+#
+################################################################################
+#
+#
+#- hosts: n5k* 
+#  connection: network_cli
+#  gather_facts: no
+#  tasks:
+    - name: 04 Configure network interfaces on Nexus 5000
+      nxos_interfaces:
+        config:
+          - name: "{{ item.member }}"
+            description: "{{ item.description | default(omit) }}"
+            speed: "{{ item.speed | default(omit) }}"
+            mtu: "{{ item.mtu | default(omit) }}"
+            duplex: "{{ item.duplex | default(omit) }}"
+            enabled: "{{ item.enabled | default(default_enabled) }}"
+        state: "{{ nx_cfg_state }}"
+      loop: "{{ all_interfaces }}"
+      loop_control:
+        label: "{{ item.member }}, Mode: {{ item.layer| default(default_layer) }}"
+
+    - name: 04 Configure FEC mode for 25/50/100G ports
+      nxos_config:
+        lines: 
+          - int {{item.member}} 
+          - spanning-tree port type {{ item.st_port_type | default(default_stpt) }}
+      when: item.fec is defined
+      loop: "{{ all_interfaces }}"
+      loop_control:
+        label: "{{ item.member }}, Fec_Mode: {{ item.fec| default(default_fec) }}"

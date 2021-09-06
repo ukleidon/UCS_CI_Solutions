@@ -1,0 +1,35 @@
+---
+################################################################################
+#
+# Title:        12-configure-port-mode.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure trunk/access port mode on Nexus 5000 series devices
+#
+# Variables:    
+#
+#               
+# Modules:      
+#
+# URLs:         https://galaxy.ansible.com/cisco/nxos
+#               https://developer.cisco.com/
+#
+# Built-in help:
+# ansible-doc cisco.nxos.
+#
+################################################################################
+#
+#- hosts: nexus* n5k*
+#  connection: network_cli
+#  gather_facts: no
+#  tasks:
+    - name: 12 Define port as trunk or access port
+      nxos_config:
+        lines:
+          - switchport mode {{ item.port_mode }}
+        parents: interface {{ item.member }}
+      loop: "{{ standalone_interfaces }}"
+      when: standalone_interfaces is defined
+      loop_control:
+          label: "PC: {{ item.member }}, Port_Mode: {{ item.port_mode }}"
+

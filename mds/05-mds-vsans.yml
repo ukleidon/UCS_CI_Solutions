@@ -1,0 +1,88 @@
+---
+################################################################################
+#
+# Title:        05-mds-vsans.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure VSAN on MDS switch and add ports or port-channel to it
+#
+# Variables:    vsan_name
+#               vsan_id
+#               storage_interface_list
+#
+# Modules:      nxos_vsan
+#
+# URLs:         https://galaxy.ansible.com/cisco/mds
+#
+# Built-in help:
+# ansible-doc cisco.mds.nxos_vsan
+#
+################################################################################
+#
+#- hosts: mds*
+#  connection: network_cli
+#  gather_facts: no
+#  tasks:
+
+    - name: MDS VSAN - Create VSAN and Add port-channel
+      nxos_vsan:
+        vsan:
+          - id: "{{ vsan_id }}"
+            name: "{{ vsan_name}}"
+            interface:
+              - port-channel {{ mds_port_channel_id }}
+            remove: False
+      when: nx_state == 'enabled'
+
+    - name: MDS VSAN - Add storage ports
+      nxos_vsan:
+        vsan:
+          - id: "{{ vsan_id }}"
+            name: "{{ vsan_name}}"
+            interface:
+              - "{{ item.interface }}"
+            remove: False
+      loop: "{{ storage_interface_list }}"
+      when: nx_state == 'enabled'
+
+    - name: MDS VSAN - Configure Smart Zoning
+      nxos_config:
+        lines:
+        - zone smart-zoning enable vsan {{ vsan_id }}
+      when: nx_state == 'enabled'
+
+
+###############################
+
+#    - name: MDS VSAN - Disable Smart Zoning
+#      nxos_config:
+#        lines:
+#        - no zone smart-zoning enable vsan {{ vsan_id }}
+#      when: nx_state == 'disabled'
+#
+#
+#    - name: MDS VSAN - Remove storage ports
+#      nxos_vsan:
+#        vsan:
+#          - id: "{{ vsan_id }}"
+#            name: "{{ vsan_name}}"
+#            interface:
+#              - "{{ item.interface }}"
+#            remove: true
+#      loop: "{{ storage_interface_list }}"
+#      when: nx_state == 'disabled'
+#
+#    - name: MDS VSAN - Delete VSAN and Add port-channel
+#      nxos_vsan:
+#        vsan:
+#          - id: "{{ vsan_id }}"
+#            name: "{{ vsan_name}}"
+#            interface:
+#              - port-channel {{ mds_port_channel_id }}
+#            remove: true
+#      when: nx_state == 'disabled'
+
+###############################
+
+
+

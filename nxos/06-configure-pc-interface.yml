@@ -1,0 +1,48 @@
+---
+################################################################################
+#
+# Title:        06-configure-pc-interface.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure Port-Channel Interfaces on NXOS devices
+#
+# Variables:    all_port_channels = List of all Port-Channel to configure
+#
+# Modules:      nxos_interfaces
+#		nxos_config
+#
+# URLs:         https://galaxy.ansible.com/cisco/nxos
+#               https://developer.cisco.com/
+#
+# Built-in help:
+# ansible-doc cisco.nxos.nxos_config
+# ansible-doc cisco.nxos.nxos_interfaces
+#
+################################################################################
+#
+#
+#- hosts: nexus* n5k*
+#  connection: network_cli
+#  gather_facts: no
+#  tasks:
+    - name: 04 Configure network port-channel as layer2 or layer3
+      nxos_interfaces:
+        config:
+          - name: "{{ item.interface }}"
+            mode: "{{ item.layer | default(default_layer) }}"
+            description: "{{ item.description | default(omit) }}"
+            enabled: "{{ item.enabled | default(default_enabled) }}"
+        state: "{{ nx_cfg_state }}"
+      loop: "{{ all_port_channels }}"
+      when: all_port_channels is defined
+      loop_control:
+        label: "{{ item.interface }}, Mode: {{ item.layer| default(default_layer) }}"
+
+    - name: Delete network port-channel
+      nxos_config:
+        lines:
+          - no int {{ item.interface }}
+      loop: "{{ all_port_channels }}"
+      when: state == 'absent'
+      loop_control:
+        label: "{{ item.interface }}, Mode: {{ item.layer| default(default_layer) }}"

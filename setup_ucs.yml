@@ -1,0 +1,95 @@
+---
+# FlexPod configuration - UCS only
+#
+- hosts: ucs*
+  connection: local
+  collections:
+  - cisco.ucs
+  gather_facts: no
+  tasks:
+
+#------------------------------------------------------------------------------
+#
+# Unified Computing System configuration steps
+#
+     # Configure Unified Ports as FC ports
+     - include_tasks: ucsm/00-unified_ports_6200.yml
+       when: configure_ci == 'true' and setup_6200 == 'true'
+     - include_tasks: ucsm/00-unified_ports.yml
+       when: configure_ci == 'true' and setup_6200 != 'true'
+
+     # Configure Management IP address pool required to manage UCS servers
+     - include_tasks: ucsm/01-ip-kvm.yml
+
+     # Configure DNS-Server, NTP-Server and Timezone
+     - include_tasks: ucsm/02-1-dns-config.yml
+       when: configure_ci == 'true'
+     - include_tasks: ucsm/02-2-ntp-config.yml
+       when: configure_ci == 'true'
+
+     # Configure Server Ports and hardware policies
+     - include_tasks: ucsm/03-chassis-discovery.yml
+       when: configure_ci == 'true'
+     - include_tasks: ucsm/04-server-ports.yml
+       when: configure_ci == 'true'
+     - include_tasks: ucsm/13-psu-policy.yml
+       when: configure_ci == 'true'
+     - include_tasks: ucsm/20-maintenance-policy.yml
+       when: configure_ci == 'true'
+
+     # Configue uplink Ethernet ports and QoS settings
+     - include_tasks: ucsm/05-qos-system.yml
+       when: configure_ci == 'true'
+     - include_tasks: ucsm/06-network-ports.yml
+       when: configure_ci == 'true'
+
+     # Create UCS Sub-Org used by all playbooks below
+     - include_tasks: ucsm/08-create-org.yml
+
+     # Create MAC and UUID pools
+     - include_tasks: ucsm/09-mac-pool.yml
+     - include_tasks: ucsm/10-uuid-pool.yml
+
+     # Configure iSCSI IQN pools
+     - include_tasks: ucsm/11-iqn-pool.yml
+       when: configure_iscsi == 'true'
+###     - include_tasks: ucsm/12-ip-pool-iscsi-boot.yml
+###       when: configure_iscsi == 'true'
+
+     - include_tasks: ucsm/14-power-control.yml
+       when: configure_ci == 'true'
+
+     - include_tasks: ucsm/15-network-control.yml
+     - include_tasks: ucsm/16-host-fw.yml
+     - include_tasks: ucsm/17-local-disk-config.yml
+     - include_tasks: ucsm/18-server-bios.yml
+     - include_tasks: ucsm/18-server-bios-latency.yml
+     - include_tasks: ucsm/18-server-bios-hpc.yml
+     - include_tasks: ucsm/19-serial-over-lan.yml
+     - include_tasks: ucsm/21-create-vlans.yml
+     - include_tasks: ucsm/22-vlan-group.yml
+     - include_tasks: ucsm/23-eth-adapter-policy.yml
+     - include_tasks: ucsm/24-qos-policy.yml
+     - include_tasks: ucsm/25-vnic-template.yml
+     - include_tasks: ucsm/26-vnic-placement.yml
+     - include_tasks: ucsm/27-lan-connect-policy.yml
+     - include_tasks: ucsm/28-vmedia-policy.yml
+     - include_tasks: ucsm/29-disk-group.yml
+     - include_tasks: ucsm/30-storage-profile.yml
+     - include_tasks: ucsm/31-server-pool.yml
+     - include_tasks: ucsm/32-san-connect-policy.yml
+     - include_tasks: ucsm/33-wwn-pools.yml
+     - include_tasks: ucsm/34-vsan.yml
+     - include_tasks: ucsm/35-vsan-trunk.yml
+     - include_tasks: ucsm/36-fc-port-channel.yml
+     - include_tasks: ucsm/37-vhba-template.yml
+     - include_tasks: ucsm/38-scrub.yml
+     - include_tasks: ucsm/39-boot-policy.yml
+     - include_tasks: ucsm/40-create-ipmi-policy.yml
+     # Create Service Profile Templates and Service Profiles
+     - include_tasks: ucsm/47-sp-template.yml
+     - include_tasks: ucsm/50-sp-from-template.yml
+
+     # Get WWN from Servie Profiles to configue SAN zoning and storage initiators
+     - include_tasks: ucsm/89-get-wwnn.yml
+

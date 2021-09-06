@@ -1,0 +1,39 @@
+---
+################################################################################
+#
+# Title:        01-configure_features.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure features on NXOS devices
+#
+# Variables:    nxos_features = List of features to configure
+#
+# Modules:      nxos_feature
+#
+# URLs:         https://galaxy.ansible.com/cisco/nxos
+#               https://developer.cisco.com/
+#
+# Built-in help:
+# ansible-doc cisco.nxos.nxos_features
+#
+################################################################################
+#
+#
+#- hosts: nexus* n5k*
+#  connection: network_cli
+#  gather_facts: no
+#  tasks:
+    - name: 01 Enable NX-OS features
+      nxos_feature:
+        state: "{{ nx_state }}"
+        feature: "{{ item }}"
+      loop:  "{{ nxos_features }}"
+#      when: nxos_features is defined and nx_state == 'enabled'
+
+    - name: 01 Disable NX-OS features
+      nxos_feature:
+        state: 'disabled'
+        feature: "{{ item }}"
+      loop:  "{{ nxos_features }}"
+      when: nxos_features is defined and nx_state == 'deleted'
+

@@ -1,0 +1,41 @@
+---
+################################################################################
+#
+# Title:        09-mds-zoneset.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure zoneset and zone on MDS switch
+#               The configuration does NOT include the UCS Servers as they are
+#		created later in the process.
+#
+# Variables:    device_alias_list
+#               vsan_id
+#               zone_name
+#
+# Modules:      nxos_zone_zoneset
+#
+# URLs:         https://galaxy.ansible.com/cisco/mds
+#
+# Built-in help:
+# ansible-doc cisco.mds.pool
+#
+################################################################################
+#
+#- hosts: mds*
+#  connection: network_cli
+#  gather_facts: no
+#  tasks:
+
+    - name: Create a Zone and Zoneset
+      nxos_zone_zoneset:
+        zone_zoneset_details:
+          - mode: basic
+            smart_zoning: true
+            vsan: "{{ vsan_id }}"
+            zone:
+              - members:
+                  - pwwn: "{{ item.pwwn }}"
+                    devtype: "{{ item.dev_type }}"
+                name: "{{  zone_name  }}"
+      loop: "{{ device_alias_list }}"
+      when: device_alias_list

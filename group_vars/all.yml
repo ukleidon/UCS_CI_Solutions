@@ -1,0 +1,304 @@
+# Variables File for WDF02-4-DMZ Lab
+
+# This file defines the variables which are common across the entire lab.
+# 
+###############################################################################
+#
+# Nexus | Nexus | Nexus | Nexus | Nexus | Nexus | Nexus | Nexus | Nexus 
+#
+# The following parameters are used by all Nexus devices in the lab
+#
+#------------------------------------------------------------------------------
+#
+# Directory on the localhost to store configuration backup's from NXOS devices
+#
+backup_dir: '/opt/dasi'
+default_fec: 'auto'
+mgmt_vlans: ','
+storage_vlans: ','
+access_vlans: ','
+default_ip: 'none'
+default_mask: '24'
+debugging: 'false'
+
+# List of features configured on all Nexus switches
+#
+nxos_features:
+  - lacp
+  - vpc
+  - interface-vlan
+  - nxapi
+  - udld
+  - lldp
+
+nx_cfg_state: 'merged'
+
+ 
+###############################################################################
+#
+# Global Parameters used by all hardware and software components in the lab
+#
+#
+#------------------------------------------------------------------------------
+# 02. DNS Servers
+# Up to four DNS server can be defined.
+# IP addresses is required
+
+dns_domain: 'wdf02-4-dmz.local'
+
+dns_servers:
+  - name: 172.20.0.50
+  - name: 172.20.0.51
+
+#------------------------------------------------------------------------------
+# 02. Synchronize NTP
+# Up to four NTP server can be defined.
+# IP addresses or FQDN is required
+ntp_servers:
+  - name: 172.20.0.50
+  - name: 172.20.0.51
+  - name: ntp.wdf02-4-dmz.local
+# Timezone
+time_zone: Europe/Berlin
+
+###############################################################################
+#
+# UCS | UCS | UCS | UCS | UCS | UCS | UCS | UCS | UCS | UCS | UCS | UCS | UCS 
+#
+# The following settings are used across all UCS Domains and all use-cases
+#
+#
+#------------------------------------------------------------------------------
+# 08. Create New Org
+#
+ucs_org: "org-root"
+ucs_base_org_name: 'Ansible'
+ucs_base_org_description: "Base Org managed by Ansible"
+
+# To define a Sub-Org for a specific solution the following two lines must
+# be specified in the solution YAML file.
+#
+#solution_org_name: 'HANA'
+#solution_org_description: "Org for SAP HANA Tenant 02 created by Ansible"
+
+#------------------------------------------------------------------------------
+# 13. Configure Compute PSU policy
+# Values: grid , n+1 , non-redundant
+psu_policy: 'grid'
+
+#------------------------------------------------------------------------------
+# 14. Create Power Control Policy
+# fanspeed values:  low-power, balanced, performance, high-power, max-power, any
+# priotity values:  no-cap, 1 - 10
+power_policy_list:
+  - name: 'Cap'
+    description: 'Power-CAP for low prio servers'
+    priority: '1'
+    fanspeed: 'any'
+  - name: 'default'
+    description: 'No Power-CAP for prio servers'
+    priority: 'no-cap'
+    fanspeed: 'balanced'
+
+#------------------------------------------------------------------------------
+# 15. Create Network Control Policy
+NCP_name: Enable-CDP-LLDP
+NCP_descrption: 'Enable CDP and LLDP - Link-Down - Mac-Native'
+NCP_cdp: 'enabled'
+NCP_lldp: 'enabled'
+# Optional parameters
+NCP_uplink_fail_action: 'link-down'
+NCP_mac_register_mode: 'only-native-vlan'
+
+#------------------------------------------------------------------------------
+# 17. Create Local Disk Configuration Policy
+# Key is used as policy name and value is used to to define RAID
+# Values: no-raid, raid-striped (R0), raid-mirrored (R1), raid-striped-parity (R5), \
+#         raid-striped-dual-parity (R6), ... (R10, ... (R50), ... (R60)
+local_disk_policy_list:
+   - name: 'local-raid1'
+     descr: 'Local disks configured in RAID1'
+     mode: 'raid-mirrored'
+   - name: 'local-raid0'
+     descr: 'Local disks configured in RAID0'
+     mode: 'raid-striped'
+   - name: 'local-noraid'
+     descr: 'Local disks configured without RAID'
+     mode: 'no-raid'
+   - name: 'IgnoreDisk'
+     descr: 'Allow any local configuration'
+     mode: 'any-configuration'
+
+#------------------------------------------------------------------------------
+# 19. Create Serial Over LAN Policy
+ucs_sol_name: 'SoL-Console'
+ucs_vp_baud_rate: '115200'
+
+#------------------------------------------------------------------------------
+# 20. Update default Maintenance Policy
+maint_pol_list:
+  - name: 'User-ack'
+    uptime_disr: 'user-ack'
+    description: 'UCS waiting for admin ack'
+    trigger: 'on-next-boot'
+
+#------------------------------------------------------------------------------
+# 23. Create Ethernet Adapter Policy
+eth_adapter_list:
+  - name: 'HighTraffic'
+    descr: 'For high traffic'
+    workqueue: '8'
+    workqring: '4096'
+    recvqueue: '8'
+    recvqring: '4096'
+    compqueue: '17'
+    interrupt: '32'
+    recside_scaling: 'enabled'
+    accel_rfs: 'disabled'
+
+#------------------------------------------------------------------------------
+# 24. Create QoS policies
+# Playloads configued on top of this UCS / CI solution may configure additional policies.
+qos_policy_list:
+#  - name: 'Platinum'
+#    prio: 'platinum'
+#    burst: '10240'
+#    rate: 'line-rate'
+#    host_control: 'none'
+#  - name: 'Gold'
+#    prio: 'gold'
+#    burst: '10240'
+#    rate: 'line-rate'
+#    host_control: 'none'
+#  - name: 'Silver'
+#    prio: 'silver'
+#    burst: '10240'
+#    rate: '10240'
+#    host_control: 'none'
+#  - name: 'Bronze'
+#    prio: 'bronze'
+#    burst: '10240'
+#    rate: '2048'
+#    host_control: 'none'
+  - name: 'Best-Effort'
+    prio: 'best-effort'
+    burst: '10240'
+    rate: 'line-rate'
+    host_control: 'none'
+
+#------------------------------------------------------------------------------
+# 26. Create vNIC Placement Policy
+# Mapping options: "linear-ordered", "linear-ordered-to-round-robin",
+#                  "round-robin", "round-robin-to-linear-ordered
+vnic_placement_list:
+  - name: 'vnic-linear'
+    mapping: 'linear-ordered'
+  - name: 'vnic-roundrobin'
+    mapping: 'round-robin'
+
+#------------------------------------------------------------------------------
+# 38. Scrub Policies
+# scrub_list[0].name is used in ServiceProfileTemplate as default
+scrub_list:
+  - name: 'no-scrub'
+    bios_settings_scrub: "no"
+    disk_scrub: "no"
+    flex_flash_scrub: "no"
+    persistent_memory_scrub: "no"
+  - name: 'disk-scrub'
+    disk_scrub: "yes"
+  - name: 'flex-scrub'
+    flex_flash_scrub: "yes"
+  - name: 'bios-scrub'
+    bios_settings_scrub: "yes"
+  - name: 'pmm-scrub'
+    persistent_memory_scrub: "yes"
+  - name: 'disk_flex'
+    disk_scrub: "yes"
+    flex_flash_scrub: "yes"
+  - name: 'all-scrub'
+    bios_settings_scrub: "yes"
+    disk_scrub: "yes"
+    flex_flash_scrub: "yes"
+    persistent_memory_scrub: "yes"
+
+
+# Network Control Policy Name
+nw_ctrl_name: 'enable-cdp-lldp'
+
+###
+# SNMP v3
+snmpv3_name: 'telegraf'
+snmpv3_authprot: 'sha'
+snmpv3_authpw: 'ucs4sap!'
+snmpv3_privpw: 'SAPhana10!'
+telegrafhost: '172.20.0.198'
+
+
+###############################################################################
+#
+# Unattended OS installation | Unattended OS installation | Unattended OS installation  
+#
+# The following parameters are used for unattended OS installations
+#
+#------------------------------------------------------------------------------
+#
+# Unattended installation uses a NFS server to store the ISO image and kickstart file
+# ua_nfs_server:  IP address or hostname of the NFS server
+# ua_nfs_path:    NFS share from the NFS server used for the OS installation
+# ua_temp_vmedia_list_file: File to store vMedia information 
+# ua_local_mp:   Local mount point where us_nfs_path is mounted to store ISO images
+#                on the host ansible is running
+#
+ua_iso_source: '/opt/automation/baremetal/esx700'
+ua_nfs_server: '172.18.2.24'
+ua_nfs_path: 'test/unattended'
+ua_tmp_vmedia_list_file: '/tmp/create-esxi-custom-iso.txt'
+ua_local_mp: 'fp/unattended'
+
+temp_wwnn_file: "/tmp/ucsm_wwnns_{{ lookup('env', 'USER') }}"
+temp_sp_list_file: /tmp/sp_templ.out
+temp_ip_list_file: "/tmp/ip_templ.out"
+temp_vmedia_for_ua_file: "/tmp/temp_vmedia_for_ua.out"
+
+###################################################################
+##
+## Default Required for solution automation
+## 
+## Please do not change or delete a variable below this line !
+##
+## ----------------------------------------------------------------
+#
+# The Fabric interconnect configured by Ansible is NOT 6200 series.
+setup_6200: 'false'
+
+# Define default parameter for this setup to allow users to remove variables.
+# This takes care that the variables required by the modules are defined.
+
+lan_assign_order: 'sequential'
+san_assign_order: 'sequential'
+
+# Default setup includes infrastructure configuration, like ports and power
+# policies.
+def_conf_ci: 'true'
+configure_ci: "{{ setup_ci | default(def_conf_ci) }}"
+
+# Default setup methode is local only - no iSCSI and no FC configuration.
+def_conf_local: 'true'
+def_conf_fc: 'false'
+def_conf_nfs: 'true'
+def_conf_iscsi: 'false'
+configure_local: "{{ setup_local | default(def_conf_local) }}"
+configure_iscsi: "{{ setup_iscsi | default(def_conf_local) }}"
+configure_fc: "{{ setup_fc | default(def_conf_local) }}"
+configure_nfs: "{{ setup_nfs | default(def_conf_nfs) }}"
+
+
+# Default number of FC ports to be configure is 8
+def_fc_ports: '8'
+fc_port_number: "{{ number_fc_ports | default(def_fc_ports) }}"
+
+# Default setup: Single Uplink network, No Disjoint L2 no VLAN groups
+def_dis_L2: 'false'
+configure_disjoint_l2: "{{ setup_disjoint_l2 | default(def_dis_L2) }}"
+
