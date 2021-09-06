@@ -1,0 +1,40 @@
+---
+################################################################################
+#
+# Title:        13-psu-policy.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure PSU policy in UCS Manager
+#
+# Variables:    psu_policy = PSU Policy Type (none, N+1, Grid)
+#
+# Modules:      ucs_managed_objects
+#
+# URLs:         https://galaxy.ansible.com/cisco/ucs
+#               https://developer.cisco.com/site/ucs-dev-center/
+#
+# Built-in help:
+# ansible-doc 
+#
+################################################################################
+# 
+#- hosts: ucs*
+#  connection: local
+#  collections:
+#  - cisco.ucs
+#  gather_facts: no
+#  tasks:
+
+    - name: 13 Configure Compute PSU policy
+      ucs_managed_objects:
+        hostname: "{{ ucs_hostname }}"
+        username: "{{ ucs_username | default(omit) }}"
+        password: "{{ ucs_password | default('password') }}"
+        state: "{{ ucs_state | default(omit) }}"
+        objects:
+        - module: ucsmsdk.mometa.compute.ComputePsuPolicy
+          class: ComputePsuPolicy
+          properties:
+             parent_mo_or_dn: org-root
+             redundancy: "{{ psu_policy }}"
+      when: psu_policy is defined

@@ -1,0 +1,47 @@
+---
+################################################################################
+#
+# Title:        26-vnic-placement.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure vNIC/vHBA pleacement policy in UCS Manager
+#
+# Variables:    vnic_placement_list = List of Policies to create
+# 		ucs_org = Name of the Sub-Organization
+#
+# Modules:      ucs_managed_objects
+#
+# URLs:         https://galaxy.ansible.com/cisco/ucs
+#               https://developer.cisco.com/site/ucs-dev-center/
+#
+# Built-in help:
+# ansible-doc 
+#
+################################################################################
+#
+#- hosts: ucs*
+#  connection: local
+#  collections:
+#  - cisco.ucs
+#  gather_facts: no
+#  tasks:
+
+  - name: 26 Create vNIC/vHBA Placement Policy
+    ucs_managed_objects: 
+      hostname: "{{ ucs_hostname }}"
+      username: "{{ ucs_username | default(omit) }}"
+      password: "{{ ucs_password | default('password') }}"
+      state: "{{ ucs_state | default(omit) }}"
+      objects:      
+        - {
+            "module": "ucsmsdk.mometa.fabric.FabricVConProfile",
+            "class": "FabricVConProfile",
+            "properties": {
+                "parent_mo_or_dn": "{{ ucs_org }}",
+                "name": "{{ item.name }}",
+                "mezz_mapping": "{{ item.mapping }}"
+            }
+          }   
+    loop: "{{ vnic_placement_list }}"
+    when: vnic_placement_list is defined and ucs_state == 'present'
+

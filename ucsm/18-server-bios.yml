@@ -1,0 +1,67 @@
+---
+################################################################################
+#
+# Title:        18-server-bios.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure BIOS Policy in UCS Manager
+#
+# Variables:    bios_policy_name = Name of the BIOS Policy
+#               bios_setting_list = List of all settings for this policy
+#
+# Modules:      ucs_managed_objects
+#
+# URLs:         https://galaxy.ansible.com/cisco/ucs
+#               https://developer.cisco.com/site/ucs-dev-center/
+#
+# Built-in help:
+# ansible-doc 
+#
+################################################################################
+#
+#- hosts: ucs*
+#  connection: local
+#  collections:
+#  - cisco.ucs
+#  gather_facts: no
+#
+#  tasks:
+  - name: Set facts
+    set_fact:
+       bios_policy: "{{ bios_policy_name | default(omit) }}"
+       login_info: &login_info
+         hostname: "{{ ucs_hostname }}"
+         username: "{{ ucs_username | default(omit) }}"
+         password: "{{ ucs_password | default('password') }}"
+         state: "{{ ucs_state | default(omit) }}"
+
+  - name: 18 Configure Server BIOS Policy {{ bios_policy_name }}
+    when: bios_policy_name is defined
+    ucs_managed_objects: 
+      <<: *login_info
+      objects:
+        - {
+            "module": "ucsmsdk.mometa.bios.BiosVProfile",
+            "class": "BiosVProfile",
+            "properties": {
+                "parent_mo_or_dn": "{{ ucs_org }}",
+                "name": "{{ bios_policy }}",
+            },
+          }
+    
+  - name: 18 Update BIOS Policy settings in {{ bios_policy_name }}
+    ucs_managed_objects:
+      <<: *login_info
+      objects:
+      - {
+          "module": "ucsmsdk.mometa.bios.BiosTokenSettings",
+          "class": "BiosTokenSettings",
+          "properties": {
+              "parent_mo_or_dn": "{{ ucs_org }}/bios-prof-{{bios_policy}}/{{ item.mo_token }}",
+              "is_assigned": "yes",
+              "settings_mo_rn": "{{ item.mo_setting }}"
+          },
+        }
+#    no_log: 'true'
+    with_list: "{{ bios_setting_list }}"
+    when: bios_policy_name is defined and ucs_state == 'present'

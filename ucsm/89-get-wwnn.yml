@@ -1,0 +1,81 @@
+---
+################################################################################
+#
+# Title:        89-get-ucswwnns.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2021-03-31
+# Description:  Gets all WWNNs of existing Service Profiles from UCS Manager
+#               with Ansible modules.
+#
+# Variables:    temp_wwnn_file = File name to write the information 
+#
+# Modules:      ucs_query
+#
+# URLs:         https://galaxy.ansible.com/cisco/ucs
+#               https://developer.cisco.com/site/ucs-dev-center/
+#
+# Built-in help:
+# ansible-doc cisco.ucs.ucs_query
+#
+################################################################################
+#
+#- hosts: ucs*
+#  connection: local
+#  gather_facts: no
+#  tasks:
+
+    - name: 01 Configure Management IP Address Pool
+      register: ucsm
+      cisco.ucs.ucs_query:
+        hostname: "{{ ucs_hostname }}"
+        username: "{{ ucs_username | default(omit) }}"
+        password: "{{ ucs_password | default('password') }}"
+        class_ids: vnicFcIf
+        delegate_to: localhost
+
+    - name: 89 Collect WWNN information 
+      set_fact: 
+        ucs_wwnns_list:
+          "{{ ucs_wwnns_list | default ([]) + [
+              { 'name' : item.dn.split('ls-')[1].split('/')[0], 
+                'fabric' : item.dn.split('Fabric-')[1].split('/')[0], 
+                'vsan' : item.vnet , 'wwnn' : item.initiator }
+          ] }}"
+      loop: "{{ ucsm.objects.vnicFcIf }}"
+      when: item.initiator != "00:00:00:00:00:00:00:00"
+      loop_control:
+         label: "{{ item.dn }}"
+
+    - name: 89 Delete temp_wwnn_file
+      file: 
+        path: "{{ temp_wwnn_file }}"
+        state: absent
+
+    - name: 02 Create file
+      file: 
+        path: "{{ temp_wwnn_file }}"
+        state: touch
+
+    - name: 03 create header
+      lineinfile: 
+        path: "{{ temp_wwnn_file }}"
+        line: "ucs_wwnns_list:"
+
+    - name: 03 Write information into file
+      lineinfile: 
+        path: "{{ temp_wwnn_file }}"
+        line: "  - name: {{ item.name }} \n    fabric: {{ item.fabric }} \n    vsan: {{ item.vsan }} \n    wwnn: {{ item.wwnn }}"
+      loop: "{{ ucs_wwnns_list }}"
+      loop_control:
+         label: "{{ item.name }}"
+
+
+#    - name: 03 Write information into file
+#      lineinfile: 
+#        path: "{{ temp_wwnn_file }}"
+#        line: "  - name: {{ item.dn.split('ls-')[1].split('/')[0] }} \n    fabric: {{ item.dn.split('Fabric-')[1].split('/')[0] }} \n    vsan: {{ item.vnet }} \n    wwnn: {{ item.initiator }}"
+#      loop: "{{ ucsm.objects.vnicFcIf }}"
+#      when: item.initiator != "00:00:00:00:00:00:00:00"
+#      loop_control:
+#         label: "{{ item.dn }}"
+

@@ -1,0 +1,61 @@
+---
+################################################################################
+#
+# Title:        47-sp-template.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure Service Profile Template in UCS Manager
+#
+# Variables:    SPT_list = List of Service Profile Templates to configure
+#               ucs_org = Name of the Sub-Oganization
+#
+# Modules:      ucs_service_profile_template
+#
+# URLs:         https://galaxy.ansible.com/cisco/ucs
+#               https://developer.cisco.com/site/ucs-dev-center/
+#
+# Built-in help:
+# ansible-doc cisco.ucs.ucs_service_profile_template
+#
+################################################################################
+#
+#- hosts: ucs*
+#  connection: local
+#  collections:
+#  - cisco.ucs
+#  gather_facts: no
+#  tasks:
+
+    - name: 47 Create Service Profile Template
+      ucs_service_profile_template:
+        hostname: "{{ ucs_hostname }}"
+        username: "{{ ucs_username | default(omit) }}"
+        password: "{{ ucs_password | default('password') }}"
+        state: "{{ ucs_state | default(omit) }}"
+        org_dn: "{{ ucs_org }}"
+        name: "{{ item.name }}"
+        template_type: "{{ item.type | default(omit) }}"
+        uuid_pool: "{{ item.uuid_pool | default(omit)  }}"
+        lan_connectivity_policy: "{{ item.LCP_name | default(omit)  }}"
+        san_connectivity_policy: "{{ item.SCP_name | default(omit)  }}"
+        iqn_pool: "{{ item.iqn_pool | default(omit)  }}"
+        boot_policy: "{{ item.boot_policy | default(omit)  }}"
+        maintenance_policy: "{{ item.maint_policy | default(omit)  }}"
+        power_control_policy: "{{ item.power_policy | default(omit)  }}"
+        local_disk_policy: "{{ item.local_disk_policy | default(omit)  }}"
+        mgmt_ip_pool: "{{ item.mgmt_ip_pool | default(omit) }}"
+        server_pool: "{{ item.server_pool | default(omit) }}"
+        bios_policy: "{{ item.bios_policy_name | default(omit) }}"
+        sol_policy: "{{ item.sol_policy | default(omit) }}"
+        storage_profile: "{{ item.storage_profile | default(omit) }}"
+        vmedia_policy: "{{ item.vmedia_policy | default(omit) }}"
+        description: "{{ item.description | default(omit) }}"
+        ipmi_access_profile: "{{ item.ipmi_access_profile | default(omit) }}"
+        kvm_mgmt_policy: "{{ item.kvm_mgmt_policy | default(omit) }}"
+        mgmt_inband_pool_name: "{{ item.mgmt_inband_pool_name | default(omit) }}"
+        mgmt_interface_mode: "{{ item.mgmt_interface_mode | default(omit) }}"
+        mgmt_vnet_name: "{{ item.mgmt_vnet_name | default(omit) }}"
+        scrub_policy: "{{ item.scrub_policy | default(omit) }}"
+        server_pool_qualification: "{{ item.server_pool_qualification | default(omit) }}"
+      loop: "{{ SPT_list }}"
+      when: SPT_list is defined

@@ -1,0 +1,85 @@
+---
+################################################################################
+#
+# Title:        35-vsan-trunk.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure vSAN Trunking in UCS Manager
+#
+# Variables:    configure_fc = Must be "true" to configure FC options
+#
+# Modules:      ucs_managed_objects
+#
+# URLs:         https://galaxy.ansible.com/cisco/ucs
+#               https://developer.cisco.com/site/ucs-dev-center/
+#
+# Built-in help:
+# ansible-doc 
+#
+################################################################################
+#
+#- hosts: ucs*
+#  connection: local
+#  gather_facts: no
+#  tasks:
+  - name: Set facts
+    set_fact:
+       login_info: &login_info
+         hostname: "{{ ucs_hostname }}"
+         username: "{{ ucs_username | default(omit) }}"
+         password: "{{ ucs_password | default('password') }}"
+         state: "{{ ucs_state | default(omit) }}"
+
+  - name: 34 Enable VSAN trunking on FC Uplink ports
+    ucs_managed_objects: 
+      <<: *login_info
+      objects:
+        - {
+            "module": "ucsmsdk.mometa.fabric.FabricFcSan",
+            "class": "FabricFcSan",
+            "properties": {
+                "parent_mo_or_dn": "fabric/san",
+                "id": "A",
+                "uplink_trunking": "enabled"
+              }
+          }
+        - {
+            "module": "ucsmsdk.mometa.fabric.FabricFcSan",
+            "class": "FabricFcSan",
+            "properties": {
+                "parent_mo_or_dn": "fabric/san",
+                "id": "B",
+                "uplink_trunking": "enabled"
+              }
+          }
+    when: configure_fc == 'true' and ucs_state == 'present'
+
+
+
+  - name: 34 Disable VSAN trunking on FC Uplink ports
+    ucs_managed_objects: 
+      <<: *login_info
+      state: present
+      objects:
+        - {
+            "module": "ucsmsdk.mometa.fabric.FabricFcSan",
+            "class": "FabricFcSan",
+            "properties": {
+                "parent_mo_or_dn": "fabric/san",
+                "id": "A",
+                "uplink_trunking": "disabled"
+              }
+          }
+        - {
+            "module": "ucsmsdk.mometa.fabric.FabricFcSan",
+            "class": "FabricFcSan",
+            "properties": {
+                "parent_mo_or_dn": "fabric/san",
+                "id": "B",
+                "uplink_trunking": "disabled"
+              }
+          }
+    when: configure_fc == 'true' and ucs_state == 'absent'
+
+
+

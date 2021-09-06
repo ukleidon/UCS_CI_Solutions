@@ -1,0 +1,39 @@
+---
+################################################################################
+#
+# Title:        91-wait-for-ssh.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2021-03-31
+# Description:  Wait until ssh-connection to installed OS is possible.
+#               This indicates that OS installation is finished and ansible
+#               can continue with workflow.
+#
+# Variables:    temp_ip_list_file = File name to write the information 
+#
+# Modules:      ipmi_power
+#
+# URLs:         https://galaxy.ansible.com/cisco/ucs
+#               https://developer.cisco.com/site/ucs-dev-center/
+#
+# Built-in help:
+# ansible-doc cisco.ucs.ucs_query
+#
+################################################################################
+#
+#- hosts: ucs*
+#  connection: local
+#  gather_facts: no
+#  vars:
+#    temp_ip_list_file: /tmp/ip_templ.out
+#  tasks:
+
+    - name: 91 Give the OS installation 10 minutes
+      pause:
+        minutes: 10
+
+    - name: 91 Wait for SSH connection to installed OS
+      wait_for:
+        port: 22
+#        host: '{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}'
+        host: '172.18.1.104'
+        state: started

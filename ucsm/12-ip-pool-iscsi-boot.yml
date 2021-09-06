@@ -1,0 +1,40 @@
+---
+################################################################################
+#
+# Title:        12-ip-pool-iscsi-boot.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure iSCSI IP Pool in UCS Manager
+#
+# Variables:    iscsi_ip_pool_list = List of iSCSI IP pools to create
+#               lan_assign_order = Sequential or default order
+#
+# Modules:      ucs_ip_pool
+#
+# URLs:         https://galaxy.ansible.com/cisco/ucs
+#               https://developer.cisco.com/site/ucs-dev-center/
+#
+# Built-in help:
+# ansible-doc cisco.ucs.ucs_ip_pool
+#
+################################################################################
+# FlexPod HANA Playbook
+#- hosts: ucs*
+#  connection: local
+#  gather_facts: no
+#  tasks:
+        
+    - name: 12 Configure IP Pools for iSCSI
+      ucs_ip_pool:
+        hostname: "{{ ucs_hostname }}"
+        username: "{{ ucs_username | default(omit) }}"
+        password: "{{ ucs_password | default('password') }}"
+        state: "{{ ucs_state | default(omit) }}"
+        org_dn: "{{ ucs_org }}"
+        name: "{{ item.name }}"
+        order: "{{ lan_assign_order }}"
+        first_addr: "{{ item.first_ip }}"
+        last_addr: "{{ item.last_ip }}"
+        subnet_mask: "{{ item.subnet_mask }}"
+      loop: "{{ iscsi_ip_pool_list }}"
+      when: iscsi_ip_pool_list is defined

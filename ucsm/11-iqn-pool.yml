@@ -1,0 +1,60 @@
+---
+################################################################################
+#
+# Title:        11-iqn-pool.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure IQN Pool in UCS Manager to enable iSCSI support
+#
+# Variables:    iqn_pool_name = Name of the IQN pool
+#               iqn_prefix = Prefix of the IQNs to create in the pool
+#               iqn_suffix_from = Start ID for IQN suffix pool
+#               iqn_suffix_to = End ID for IQN suffix pool
+#
+# Modules:      ucs_managed_objects
+#
+# URLs:         https://galaxy.ansible.com/cisco/ucs
+#               https://developer.cisco.com/site/ucs-dev-center/
+#
+# Built-in help:
+# ansible-doc 
+#
+################################################################################
+# 
+#- hosts: ucs*
+#  connection: local
+#  collections:
+#  - cisco.ucs
+#  gather_facts: no
+#
+#  tasks:
+
+  - name: 11 Create IQN Pools for iSCSI Boot
+    ucs_managed_objects: 
+      hostname: "{{ ucs_hostname }}"
+      username: "{{ ucs_username | default(omit) }}"
+      password: "{{ ucs_password | default('password') }}"
+      state: "{{ ucs_state | default(omit) }}"
+      objects:
+      - {
+        "module": "ucsmsdk.mometa.iqnpool.IqnpoolPool",
+        "class": "IqnpoolPool",
+        "properties": {
+            "parent_mo_or_dn": "{{ ucs_org }}",
+            "name": "{{ iqn_pool_name }}",
+            "assignment_order": "sequential",
+            "prefix": "{{ iqn_prefix }}"
+        },
+        "children": [
+            {
+                "module": "ucsmsdk.mometa.iqnpool.IqnpoolBlock",
+                "class": "IqnpoolBlock",
+                "properties": {
+                    "suffix":"{{ iqn_suffix }}",
+                    "r_from": "{{ iqn_suffix_from }}",
+                    "to": "{{ iqn_suffix_to }}"
+                }
+            }
+        ]
+      }
+    when: iqn_pool_name is defined

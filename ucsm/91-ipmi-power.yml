@@ -1,0 +1,39 @@
+---
+################################################################################
+#
+# Title:        91-ipmi-power.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2021-03-31
+# Description:  Use IPMI to control power state of servers
+#
+# Variables:    temp_ip_list_file = File name to write the information 
+#
+# Modules:      ipmi_power
+#
+# URLs:         https://galaxy.ansible.com/cisco/ucs
+#               https://developer.cisco.com/site/ucs-dev-center/
+#
+# Built-in help:
+# ansible-doc cisco.ucs.ucs_query
+#
+################################################################################
+#
+#- hosts: ucs*
+#  connection: local
+#  gather_facts: no
+#  vars:
+#    temp_ip_list_file: /tmp/ip_templ.out
+#  tasks:
+
+    - name: 91 Use IPMI to control server power state
+      ipmi_power:
+        name: "{{ item.ip }}"
+        user: "{{ ipmi_user | default(omit) }}"
+        password: "{{ ipmi_password | default('password') }}"
+        state: "{{ ipmi_next_state }}"
+      loop: "{{ ip_info_list }}"
+      when: "{{ 'Shopfloor-ESX-04' in item.assigned }} and ipmi_next_state != ''"
+
+    - name: 91 Sleep 9 minutes after power on for POST
+      pause:
+        minutes: 9

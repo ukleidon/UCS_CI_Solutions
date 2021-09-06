@@ -1,0 +1,41 @@
+---
+################################################################################
+#
+# Title:        10-uuid-pool.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure UUID Pool with a range of UUIDs in UCS Manager
+#
+# Variables:    uuid_pool_name = Name of the UUID Pool
+#               uuid_start = First UUID in the pool
+#               uuid_end = Last UUID in the pool
+#
+# Modules:      ucs_uuid_pool
+#
+# URLs:         https://galaxy.ansible.com/cisco/ucs
+#               https://developer.cisco.com/site/ucs-dev-center/
+#
+# Built-in help:
+# ansible-doc cisco.ucs.ucs_uuid_pool
+#
+################################################################################
+# 
+#- hosts: ucs*
+#  connection: local
+#  collections:
+#  - cisco.ucs
+#  gather_facts: no
+#  tasks:
+
+    - name: 10 Create UUID Suffix pool
+      ucs_uuid_pool:
+        hostname: "{{ ucs_hostname }}"
+        username: "{{ ucs_username | default(omit) }}"
+        password: "{{ ucs_password | default('password') }}"
+        state: "{{ ucs_state | default(omit) }}"
+        org_dn: "{{ ucs_org }}"
+        name: "{{ uuid_pool_name }}"
+        order: sequential
+        first_uuid: "{{ uuid_start }}"
+        last_uuid: "{{ uuid_end }}"
+      when: uuid_pool_name is defined

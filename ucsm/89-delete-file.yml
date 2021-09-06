@@ -1,0 +1,31 @@
+---
+################################################################################
+#
+# Title:        89-delete-file.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2021-03-31
+# Description:  Deletes file with WWNNs of existing Service Profiles from UCS Manager
+#               with Ansible modules.
+#
+# Variables:    temp_wwnn_file = File name to write the information 
+#
+# Modules:      file
+#
+# URLs:         
+#               
+#
+# Built-in help:
+# ansible-doc 
+#
+################################################################################
+#
+#- hosts: ucs*
+#  connection: network_cli
+#  gather_facts: no
+#  vars:
+#  tasks:
+    - name: 00 delete temporary wwn file
+      file:
+        path: "{{ temp_wwnn_file }}"
+        state: absent
+

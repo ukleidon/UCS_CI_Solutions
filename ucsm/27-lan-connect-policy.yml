@@ -1,0 +1,74 @@
+---
+################################################################################
+#
+# Title:        27-lan-connect-policy.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure LAN Connectivity Policy in UCS Manager
+#
+# Variables:    lan_connnect_policy_name = Name of the Policy
+#               ucs_org = Name of the Sub-Oganization
+#		vnic_template_list = List of vNIC templates to be used
+#		iscsi_template_list = List of iSCSI enabled vNIC templates
+#
+# Modules:      ucs_lan_connectivity
+#
+# URLs:         https://galaxy.ansible.com/cisco/ucs
+#               https://developer.cisco.com/site/ucs-dev-center/
+#
+# Built-in help:
+# ansible-doc cisco.ucs.ucs_lan_connectivity
+#
+################################################################################
+#
+#- hosts: ucs*
+#  connection: local
+#  collections:
+#  - cisco.ucs
+#  gather_facts: no
+#  tasks:
+    - name: Set facts
+      set_fact:
+         login_info: &login_info
+           hostname: "{{ ucs_hostname }}"
+           username: "{{ ucs_username | default(omit) }}"
+           password: "{{ ucs_password | default('password') }}"
+           state: "{{ ucs_state | default(omit) }}"
+
+    - name: 27 Configure LAN Connectivity Policy 
+      ucs_lan_connectivity:
+        <<: *login_info
+        name: "{{ lan_connnect_policy_name }}"
+        org_dn: "{{ ucs_org }}"
+        vnic_list:
+        - name: "{{ item.name }}"
+          vnic_template: "{{ item.name }}"
+          adapter_policy: "{{ item.adapter_policy }}"
+          order: "{{ item.order }}"
+      loop: "{{ vnic_template_list }}"
+      when: ucs_state == 'present'
+
+    - name: 27 Configure iSCSI adapter to LAN Connectivity Policy
+      ucs_lan_connectivity:
+        <<: *login_info
+        name: "{{ lan_connnect_policy_name }}"
+        org_dn: "{{ ucs_org }}"
+        vnic_list:
+        - name: "{{ item.name }}"
+          vnic_template: "{{ item.name }}"
+          adapter_policy: "{{ item.adapter_policy }}"
+          order: "{{ item.order }}"
+        iscsi_vnic_list:
+        - name: "{{ item.name }}"
+          overlay_vnic: "{{ item.name }}"
+          iscsi_adapter_policy: default
+          vlan_name: "{{ item.vlans[0].name }}"
+      loop: "{{ iscsi_template_list }}"
+      when: configure_iscsi is defined and ucs_state == 'present'
+
+    - name: 27 Configure LAN Connectivity Policy 
+      ucs_lan_connectivity:
+        <<: *login_info
+        name: "{{ lan_connnect_policy_name }}"
+        org_dn: "{{ ucs_org }}"
+      when: ucs_state == 'absent'

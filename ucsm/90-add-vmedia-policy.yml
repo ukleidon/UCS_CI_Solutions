@@ -1,0 +1,39 @@
+---
+################################################################################
+#
+# Title:        90-add-vmedia-policy.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2021-03-31
+# Description:  Add vMedia policy to service profile
+#
+# Variables:    sp_info_list = list of information from SP
+#
+# Modules:      ucs_query
+#
+# URLs:         https://galaxy.ansible.com/cisco/ucs
+#               https://developer.cisco.com/site/ucs-dev-center/
+#
+# Built-in help:
+# ansible-doc cisco.ucs.ucs_query
+#
+################################################################################
+#
+#- hosts: ucs*
+#  connection: local
+#  gather_facts: no
+#  tasks:
+
+    - name: Add vMedia policy to SP
+      ucs_managed_objects:
+          hostname: "{{ ucs_hostname }}"
+          username: "{{ ucs_username | default(omit) }}"
+          password: "{{ ucs_password | default('password') }}"
+          objects:
+          - module: ucsmsdk.mometa.ls.LsServer
+            class: LsServer
+            properties:
+              parent_mo_or_dn: "{{ ucs_org }}"
+              name: "{{ item.name }}"
+              vmedia_policy_name: "esx04"
+      loop: "{{ sp_info_list }}"
+      when: item.name == "Shopfloor-ESX-04"

@@ -1,0 +1,57 @@
+---
+################################################################################
+#
+# Title:        15-network-control.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure Network Control Policy (NCP) in UCS Manager
+#               NCP configured CDP and LLDP options
+#
+# Variables:    NCP_name = Name of the Network Control Policy
+#               NCP_descrption = Description for the NCP
+#               NCP_cdp = CDP Option ( enabled or disabled)
+#               NCP_uplink_fail_action = How UCS creactes to a link down
+#               NCP_mac_register_mode = Which MAC addresses to register 
+#					Native only or all
+#               NCP_lldp = LLDP send and LLDP receive option
+#			   (enabled or disabled)
+#
+# Modules:      ucs_managed_objects
+#
+# URLs:         https://galaxy.ansible.com/cisco/ucs
+#               https://developer.cisco.com/site/ucs-dev-center/
+#
+# Built-in help:
+# ansible-doc 
+#
+################################################################################
+# 
+#- hosts: ucs*
+#  connection: local
+#  collections:
+#  - cisco.ucs
+#  gather_facts: no
+#  tasks:
+
+    - name: 15 Create Network Control Policy
+      ucs_managed_objects:
+        hostname: "{{ ucs_hostname }}"
+        username: "{{ ucs_username | default(omit) }}"
+        password: "{{ ucs_password | default('password') }}"
+        state: "{{ ucs_state | default(omit) }}"
+        objects:
+        - {
+            "module": "ucsmsdk.mometa.nwctrl.NwctrlDefinition",
+            "class": "NwctrlDefinition",
+            "properties": {
+               "parent_mo_or_dn": "{{ ucs_org }}",
+               "name": "{{ NCP_name }}",
+               "descr": "{{ NCP_descrption }}",
+               "cdp": "{{ NCP_cdp }}",
+               "uplink_fail_action": "{{ NCP_uplink_fail_action }}",
+               "mac_register_mode": "{{ NCP_mac_register_mode }}",
+               "lldp_receive": "{{ NCP_lldp }}",
+               "lldp_transmit": "{{ NCP_lldp }}"
+            }
+           }
+      when: NCP_name is defined

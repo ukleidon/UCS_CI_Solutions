@@ -1,0 +1,57 @@
+---
+################################################################################
+#
+# Title:        89-get-ucswwnns.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2021-03-31
+# Description:  Gets all WWNNs of existing Service Profiles from UCS Manager
+#               with Ansible modules.
+#
+# Variables:    temp_wwnn_file = File name to write the information 
+#
+# Modules:      ucs_query
+#
+# URLs:         https://galaxy.ansible.com/cisco/ucs
+#               https://developer.cisco.com/site/ucs-dev-center/
+#
+# Built-in help:
+# ansible-doc cisco.ucs.ucs_query
+#
+################################################################################
+#
+#- hosts: ucs*
+#  connection: local
+#  gather_facts: no
+#  vars:
+#    temp_sp_list_file: /tmp/sp_templ.out
+#    distinguished_names: {}
+#  tasks:
+
+    - name: 01 Get list of information for configured ServiceProfiles
+      register: ucsm
+      cisco.ucs.ucs_query:
+        hostname: "{{ ucs_hostname }}"
+        username: "{{ ucs_username | default(omit) }}"
+        password: "{{ ucs_password | default('password') }}"
+        class_ids: lsServer
+        delegate_to: localhost
+
+    - name: Collecting data
+      set_fact:
+        sp_info_list: 
+          "{{ sp_info_list | default ([]) + [
+              { 'name' : item.name, 'templ' : item.oper_src_templ_name , 'vmedia' : item.vmedia_policy_name }
+          ] }}"
+      loop: "{{ ucsm.objects.lsServer }}"
+      loop_control:
+         label: "{{ item.name }}"
+
+    - name: 02 Create file
+      file:
+        path: "{{ temp_sp_list_file }}"
+        state: touch
+
+    - name: 03 Write header into file
+      lineinfile:
+        path: "{{ temp_sp_list_file }}"
+        line: sp_info_list {{ sp_info_list }}

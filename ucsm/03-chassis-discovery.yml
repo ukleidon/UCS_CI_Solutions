@@ -1,0 +1,46 @@
+---
+################################################################################
+#
+# Title:        03-chassis-discovery.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure Chassis Discovery Policy for UCS Blade Chassis.
+#               As UCS Manager 4.0 and newer do no longer support individual links
+#                the only option is Port-Channel configuration.
+#
+# Variables:    chassis_links = Number of network links between FI and IOM
+#               chassis_link_aggr = Type of link aggregation (default = port-channel)
+#
+# Modules:      ucs_managed_objects
+#
+# URLs:         https://galaxy.ansible.com/cisco/ucs
+#               https://developer.cisco.com/site/ucs-dev-center/
+#
+# Built-in help:
+# ansible-doc 
+#
+################################################################################
+#
+#- hosts: ucs*
+#  connection: local
+#  collections:
+#  - cisco.ucs
+#  gather_facts: no
+#  tasks:
+   - name: 03 UCS Chassis Discovery Policy
+     ucs_managed_objects:      
+       hostname: "{{ ucs_hostname }}"
+       username: "{{ ucs_username | default(omit) }}"
+       password: "{{ ucs_password | default('password') }}"
+       state: "{{ ucs_state | default(omit) }}"
+       objects:      
+       - {
+          "module": "ucsmsdk.mometa.compute.ComputeChassisDiscPolicy",
+          "class": "ComputeChassisDiscPolicy",
+          "properties": {
+             "parent_mo_or_dn": "org-root",
+             "action": "{{ chassis_links }}",
+             "link_aggregation_pref": "{{ chassis_link_aggr | default(omit) }}"
+                        }
+         }
+     when: chassis_links is defined and ucs_state == 'present'

@@ -1,0 +1,41 @@
+---
+################################################################################
+#
+# Title:        37-vhba-template.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure vHBA Templates in UCS Manager
+#
+# Variables:    vhba_list = List of vHBAs to configure
+#               ucs_org = Name of the Sub-Oganization
+#
+# Modules:      ucs_vhba_template
+#
+# URLs:         https://galaxy.ansible.com/cisco/ucs
+#               https://developer.cisco.com/site/ucs-dev-center/
+#
+# Built-in help:
+# ansible-doc cisco.ucs.ucs_vhba_template
+#
+################################################################################
+#
+#- hosts: ucs*
+#  connection: local
+#  gather_facts: no
+#  tasks:
+
+  - name: 36 Configure vHBA Template
+    ucs_vhba_template:
+      hostname: "{{ ucs_hostname }}"
+      username: "{{ ucs_username | default(omit) }}"
+      password: "{{ ucs_password | default('password') }}"
+      state: "{{ ucs_state | default(omit) }}"
+      org_dn: "{{ ucs_org }}"
+      name: "{{ item.name }}"
+      fabric: "{{ item.fabric }}"
+      template_type: "{{ item.type | default(omit) }}"
+      vsan: "{{ item.vsan }}"
+      wwpn_pool: "{{ item.wwpn_pool }}"
+    with_list: "{{ vhba_list }}"
+    when: vhba_list is defined and configure_fc == 'true'
+

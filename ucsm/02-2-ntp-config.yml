@@ -1,0 +1,49 @@
+---
+################################################################################
+#
+# Title:        02-2-ntp-config.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure NTP Server and Timezone in UCS Manager
+#
+# Variables:    ntp_servers = List of NTP server names or IP addresses
+#               time_zone = Name of the timezone in the format "region/city"
+#
+# Modules:      ucs_ntp_server
+#		ucs_timezone
+#
+# URLs:         https://galaxy.ansible.com/cisco/ucs
+#               https://developer.cisco.com/site/ucs-dev-center/
+#
+# Built-in help:
+# ansible-doc cisco.ucs.ucs_ntp_server
+# ansible-doc cisco.ucs.ucs_timezone
+#
+################################################################################
+#
+#- hosts: ucs*
+#  connection: local
+#  collections:
+#  - cisco.ucs
+#  gather_facts: no
+#  tasks:
+    - name: Set facts
+      set_fact:
+         login_info: &login_info
+           hostname: "{{ ucs_hostname }}"
+           username: "{{ ucs_username | default(omit) }}"
+           password: "{{ ucs_password | default('password') }}"
+           state: "{{ ucs_state | default(omit) }}"
+
+    - name: 02 Synchronize NTP
+      ucs_ntp_server:
+        <<: *login_info
+        ntp_server: "{{ item.name }}"
+      loop: "{{ ntp_servers }}"
+      when: ntp_servers is defined
+    - name: Configure Time Zone
+      ucs_timezone:
+        <<: *login_info
+        admin_state: enabled
+        timezone: "{{ time_zone }}"
+      when: time_zone is defined

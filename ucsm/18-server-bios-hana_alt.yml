@@ -1,0 +1,400 @@
+---
+################################################################################
+#
+# Title:        18-server-bios-hana.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure BIOS Policy for SAP HANA in UCS Manager
+#
+# Variables:    bios_policy_hana = Name of the BIOS Policy
+#               ucs_org = Name of the Sub-Oganization
+#
+# Modules:      ucs_managed_objects
+#
+# URLs:         https://galaxy.ansible.com/cisco/ucs
+#               https://developer.cisco.com/site/ucs-dev-center/
+#
+# Built-in help:
+# ansible-doc 
+#
+################################################################################
+# 
+#- hosts: ucs*
+#  connection: local
+#  collections:
+#  - cisco.ucs
+#  gather_facts: no
+#  tasks:
+  - name: Set facts
+    set_fact:
+       bios_policy: "{{ bios_policy_hana }}"
+       login_info: &login_info
+         hostname: "{{ ucs_hostname }}"
+         username: "{{ ucs_username | default(omit) }}"
+         password: "{{ ucs_password | default('password') }}"
+         state: "{{ ucs_state | default(omit) }}"
+
+  - name: 18 Create Server BIOS Policy for HANA {{ bios_policy }}
+    ucs_managed_objects: 
+      <<: *login_info
+      objects:      
+        - {
+            "module": "ucsmsdk.mometa.bios.BiosVProfile",
+            "class": "BiosVProfile",
+            "properties": {
+                "parent_mo_or_dn": "{{ ucs_org }}",
+                "name": "{{ bios_policy }}",
+            },
+          }
+
+  - name: 18 Update BIOS Policy settings in {{ bios_policy }}
+    ucs_managed_objects:
+      <<: *login_info
+      objects:
+        - {
+            "module": "ucsmsdk.mometa.bios.BiosTokenSettings",
+            "class": "BiosTokenSettings",
+            "properties": {
+              "parent_mo_or_dn": "{{ ucs_org }}/bios-prof-{{bios_policy}}/tokn-featr-Quiet Boot/tokn-param-QuietBoot",
+              "is_assigned": "yes",
+              "settings_mo_rn": "Disabled"
+            }
+          }
+        -  {
+            "module": "ucsmsdk.mometa.bios.BiosTokenSettings",
+            "class": "BiosTokenSettings",
+            "properties": {
+              "is_assigned": "yes",
+              "parent_mo_or_dn": "{{ ucs_org }}/bios-prof-{{bios_policy}}/tokn-featr-CPU Performance/tokn-param-CPUPerformance",
+              "settings_mo_rn": "Custom"
+            },
+          }
+        - {
+            "module": "ucsmsdk.mometa.bios.BiosTokenSettings",
+            "class": "BiosTokenSettings",
+            "properties": {
+                "parent_mo_or_dn": "{{ ucs_org }}/bios-prof-{{bios_policy}}/tokn-featr-Package C State Limit/tokn-param-PackageCstateLimit",
+                 "is_assigned": "yes",
+                 "settings_mo_rn": "C0-C1-State"
+              }
+          }
+        - {
+            "module": "ucsmsdk.mometa.bios.BiosTokenSettings",
+            "class": "BiosTokenSettings",
+            "properties": {
+                "parent_mo_or_dn": "{{ ucs_org }}/bios-prof-{{bios_policy}}/tokn-featr-Processor C State/tokn-param-ProcessorCstate",
+                "is_assigned": "yes",
+                "settings_mo_rn": "Disabled"
+            }
+          }
+        - {
+            "module": "ucsmsdk.mometa.bios.BiosTokenSettings",
+            "class": "BiosTokenSettings",
+            "properties": {
+                "parent_mo_or_dn": "{{ ucs_org }}/bios-prof-{{bios_policy}}/tokn-featr-Processor C1E/tokn-param-ProcessorC1E",
+                "is_assigned": "yes",
+                "settings_mo_rn": "Disabled"
+            }
+          }
+        - {
+            "module": "ucsmsdk.mometa.bios.BiosTokenSettings",
+            "class": "BiosTokenSettings",
+            "properties": {
+                "parent_mo_or_dn": "{{ ucs_org }}/bios-prof-{{bios_policy}}/tokn-featr-Processor C3 Report/tokn-param-ProcessorC3Report",
+                "is_assigned": "yes",
+                "settings_mo_rn": "Disabled"
+            }
+          }
+        - {
+            "module": "ucsmsdk.mometa.bios.BiosTokenSettings",
+            "class": "BiosTokenSettings",
+            "properties": {
+                "parent_mo_or_dn": "{{ ucs_org }}/bios-prof-{{bios_policy}}/tokn-featr-Processor C6 Report/tokn-param-ProcessorC6Report",
+                "is_assigned": "yes",
+                "settings_mo_rn": "Disabled"
+            }
+          }
+        - {
+            "module": "ucsmsdk.mometa.bios.BiosTokenSettings",
+            "class": "BiosTokenSettings",
+            "properties": {
+                "parent_mo_or_dn": "{{ ucs_org }}/bios-prof-{{bios_policy}}/tokn-featr-Processor C7 Report/tokn-param-ProcessorC7Report",
+                "is_assigned": "yes",
+                "settings_mo_rn": "Disabled"
+            }
+          }
+        - {
+            "module": "ucsmsdk.mometa.bios.BiosTokenSettings",
+            "class": "BiosTokenSettings",
+            "properties": {
+                "parent_mo_or_dn": "{{ ucs_org }}/bios-prof-{{bios_policy}}/tokn-featr-Processor Energy Configuration/tokn-param-CPUPowerManagement",
+                "is_assigned": "yes",
+                "settings_mo_rn": "Custom"
+            }
+          }
+        - {
+            "module": "ucsmsdk.mometa.bios.BiosTokenSettings",
+            "class": "BiosTokenSettings",
+            "properties": {
+                "parent_mo_or_dn": "{{ ucs_org }}/bios-prof-{{bios_policy}}/tokn-featr-Workload Configuration/tokn-param-WorkLdConfig",
+                "is_assigned": "yes",
+                "settings_mo_rn": "IO-Sensitive"
+            }
+          }
+        - {
+            "module": "ucsmsdk.mometa.bios.BiosTokenSettings",
+            "class": "BiosTokenSettings",
+            "properties": {
+                "parent_mo_or_dn": "{{ ucs_org }}/bios-prof-{{bios_policy}}/tokn-featr-NUMA optimized/tokn-param-NUMAOptimize",
+                "is_assigned": "yes",
+                "settings_mo_rn": "Enabled"
+            }
+          }
+        - {
+            "module": "ucsmsdk.mometa.bios.BiosTokenSettings",
+            "class": "BiosTokenSettings",
+            "properties": {
+  # Serial Port Redirection to Serial-A
+                "parent_mo_or_dn": "{{ ucs_org }}/bios-prof-{{bios_policy}}/tokn-featr-Serial port A enable/tokn-param-Serial-PortA",
+                "is_assigned": "yes",
+                "settings_mo_rn": "Enabled"
+            }
+          }
+        - {
+            "module": "ucsmsdk.mometa.bios.BiosTokenSettings",
+            "class": "BiosTokenSettings",
+            "properties": {
+                "parent_mo_or_dn": "{{ ucs_org }}/bios-prof-{{bios_policy}}/tokn-featr-Console redirection/tokn-param-ConsoleRedir",
+                "is_assigned": "yes",
+                "settings_mo_rn": "Serial-Port-A"
+            }
+          }
+        - {
+            "module": "ucsmsdk.mometa.bios.BiosTokenSettings",
+            "class": "BiosTokenSettings",
+            "properties": {
+                "parent_mo_or_dn": "{{ ucs_org }}/bios-prof-{{bios_policy}}/tokn-featr-Console redirection/tokn-param-BaudRate",
+                "is_assigned": "yes",
+                "settings_mo_rn": "115.2k"
+            }
+          }
+        - {
+            "module": "ucsmsdk.mometa.bios.BiosTokenSettings",
+            "class": "BiosTokenSettings",
+            "properties": {
+                "parent_mo_or_dn": "{{ ucs_org }}/bios-prof-{{bios_policy}}/tokn-featr-Console redirection/tokn-param-TerminalType",
+                "is_assigned": "yes",
+                "settings_mo_rn": "VT100-PLUS"
+            }
+          }
+        - {
+            "module": "ucsmsdk.mometa.bios.BiosTokenSettings",
+            "class": "BiosTokenSettings",
+            "properties": {
+                "parent_mo_or_dn": "{{ ucs_org }}/bios-prof-{{bios_policy}}/tokn-featr-Console redirection/tokn-param-LegacyOSRedir",
+                "is_assigned": "yes",
+                "settings_mo_rn": "Enabled"
+            }
+          }
+ # From M5 Performance Tuning Guide for Low Latency Worloads
+        - {
+            "module": "ucsmsdk.mometa.bios.BiosTokenSettings",
+            "class": "BiosTokenSettings",
+            "properties": {
+                "parent_mo_or_dn": "{{ ucs_org }}/bios-prof-{{bios_policy}}/tokn-featr-Intel HyperThreading Tech/tokn-param-IntelHyperThread",
+                "is_assigned": "yes",
+                "settings_mo_rn": "Enabled"
+            }
+          }
+        - {
+            "module": "ucsmsdk.mometa.bios.BiosTokenSettings",
+            "class": "BiosTokenSettings",
+            "properties": {
+                "parent_mo_or_dn": "{{ ucs_org }}/bios-prof-{{bios_policy}}/tokn-featr-Enhanced Intel SpeedStep Tech/tokn-param-EnhancedIntelSpeedStep",
+                "is_assigned": "yes",
+                "settings_mo_rn": "Enabled"
+            }
+          }
+        - {
+            "module": "ucsmsdk.mometa.bios.BiosTokenSettings",
+            "class": "BiosTokenSettings",
+            "properties": {
+                "parent_mo_or_dn": "{{ ucs_org }}/bios-prof-{{bios_policy}}/tokn-featr-Intel Virtualization Technology/tokn-param-IntelVT",
+                "is_assigned": "yes",
+                "settings_mo_rn": "Disabled"
+            }
+          }
+        - {
+            "module": "ucsmsdk.mometa.bios.BiosTokenSettings",
+            "class": "BiosTokenSettings",
+            "properties": {
+                "parent_mo_or_dn": "{{ ucs_org }}/bios-prof-{{bios_policy}}/tokn-featr-Intel VT for directed IO/tokn-param-IntelVTD",
+                "is_assigned": "yes",
+                "settings_mo_rn": "Disabled"
+            }
+          }
+        - {
+            "module": "ucsmsdk.mometa.bios.BiosTokenSettings",
+            "class": "BiosTokenSettings",
+            "properties": {
+                "parent_mo_or_dn": "{{ ucs_org }}/bios-prof-{{bios_policy}}/tokn-featr-Processor Prefetch Config/tokn-param-LLCPrefetch",
+                "is_assigned": "yes",
+                "settings_mo_rn": "Disabled"
+            }
+          }
+        - {
+            "module": "ucsmsdk.mometa.bios.BiosTokenSettings",
+            "class": "BiosTokenSettings",
+            "properties": {
+                "parent_mo_or_dn": "{{ ucs_org }}/bios-prof-{{bios_policy}}/tokn-featr-Intel Turbo Boost Tech/tokn-param-IntelTurboBoostTech",
+                "is_assigned": "yes",
+                "settings_mo_rn": "Enabled"
+            }
+          }
+        - {
+            "module": "ucsmsdk.mometa.bios.BiosTokenSettings",
+            "class": "BiosTokenSettings",
+            "properties": {
+                "parent_mo_or_dn": "{{ ucs_org }}/bios-prof-{{bios_policy}}/tokn-featr-P STATE Coordination/tokn-param-PsdCoordType",
+                "is_assigned": "yes",
+                "settings_mo_rn": "HW-ALL"
+            }
+          }
+        - {
+            "module": "ucsmsdk.mometa.bios.BiosTokenSettings",
+            "class": "BiosTokenSettings",
+            "properties": {
+                "parent_mo_or_dn": "{{ ucs_org }}/bios-prof-{{bios_policy}}/tokn-featr-Processor Energy Configuration/tokn-param-CpuEngPerfBias",
+                "is_assigned": "yes",
+                "settings_mo_rn": "Performance"
+            }
+          }
+        - {
+            "module": "ucsmsdk.mometa.bios.BiosTokenSettings",
+            "class": "BiosTokenSettings",
+            "properties": {
+                "parent_mo_or_dn": "{{ ucs_org }}/bios-prof-{{bios_policy}}/tokn-featr-Energy Performance Tuning/tokn-param-PwrPerfTuning",
+                "is_assigned": "yes",
+                "settings_mo_rn": "OS"
+            }
+          }
+        - {
+            "module": "ucsmsdk.mometa.bios.BiosTokenSettings",
+            "class": "BiosTokenSettings",
+            "properties": {
+                "parent_mo_or_dn": "{{ ucs_org }}/bios-prof-{{bios_policy}}/tokn-featr-CPU Hardware Power Management/tokn-param-CpuHWPM",
+                "is_assigned": "yes",
+                "settings_mo_rn": "HWPM-Native-Mode"
+            }
+          }
+        - {
+            "module": "ucsmsdk.mometa.bios.BiosTokenSettings",
+            "class": "BiosTokenSettings",
+            "properties": {
+                "parent_mo_or_dn": "{{ ucs_org }}/bios-prof-{{bios_policy}}/tokn-featr-Processor C State/tokn-param-AutoCCState",
+                "is_assigned": "yes",
+                "settings_mo_rn": "Disabled"
+            }
+          }
+        - {
+            "module": "ucsmsdk.mometa.bios.BiosTokenSettings",
+            "class": "BiosTokenSettings",
+            "properties": {
+                "parent_mo_or_dn": "{{ ucs_org }}/bios-prof-{{bios_policy}}/tokn-featr-Interleave Configuration/tokn-param-IMCInterleave",
+                "is_assigned": "yes",
+                "settings_mo_rn": "Auto"
+            }
+          }
+        - {
+            "module": "ucsmsdk.mometa.bios.BiosTokenSettings",
+            "class": "BiosTokenSettings",
+            "properties": {
+                "parent_mo_or_dn": "{{ ucs_org }}/bios-prof-{{bios_policy}}/tokn-featr-Processor Prefetch Config/tokn-param-XPTPrefetch",
+                "is_assigned": "yes",
+                "settings_mo_rn": "Auto"
+            }
+          }
+        - {
+            "module": "ucsmsdk.mometa.bios.BiosTokenSettings",
+            "class": "BiosTokenSettings",
+            "properties": {
+                "parent_mo_or_dn": "{{ ucs_org }}/bios-prof-{{bios_policy}}/tokn-featr-Processor Prefetch Config/tokn-param-KTIPrefetch",
+                "is_assigned": "yes",
+                "settings_mo_rn": "Enabled"
+            }
+          }
+        - {
+            "module": "ucsmsdk.mometa.bios.BiosTokenSettings",
+            "class": "BiosTokenSettings",
+            "properties": {
+                "parent_mo_or_dn": "{{ ucs_org }}/bios-prof-{{bios_policy}}/tokn-featr-Interleave Configuration/tokn-param-SNC",
+                "is_assigned": "yes",
+                "settings_mo_rn": "Disabled"
+            }
+          }
+        - {
+            "module": "ucsmsdk.mometa.bios.BiosTokenSettings",
+            "class": "BiosTokenSettings",
+            "properties": {
+                "parent_mo_or_dn": "{{ ucs_org }}/bios-prof-{{bios_policy}}/tokn-featr-SelectMemory RAS configuration/tokn-param-SelectMemoryRAS",
+                "is_assigned": "yes",
+                "settings_mo_rn": "ADDDC-Sparing"
+            }
+          }
+    # From VMware CVD
+        - {
+            "module": "ucsmsdk.mometa.bios.BiosTokenSettings",
+            "class": "BiosTokenSettings",
+            "properties": {
+                "parent_mo_or_dn": "{{ ucs_org }}/bios-prof-{{bios_policy}}/tokn-featr-Consistent Device Name Control/tokn-param-cdnEnable",
+                "is_assigned": "yes",
+                "settings_mo_rn": "Enabled"
+            }
+          }
+        - {
+            "module": "ucsmsdk.mometa.bios.BiosTokenSettings",
+            "class": "BiosTokenSettings",
+            "properties": {
+                "parent_mo_or_dn": "{{ ucs_org }}/bios-prof-{{bios_policy}}/tokn-featr-Direct Cache Access/tokn-param-DirectCacheAccess",
+                "is_assigned": "yes",
+                "settings_mo_rn": "Enabled"
+            }
+          }
+        - {
+            "module": "ucsmsdk.mometa.bios.BiosTokenSettings",
+            "class": "BiosTokenSettings",
+            "properties": {
+                "parent_mo_or_dn": "{{ ucs_org }}/bios-prof-{{bios_policy}}/tokn-featr-DRAM Clock Throttling/tokn-param-DRAMClockThrottling",
+                "is_assigned": "yes",
+                "settings_mo_rn": "Performance"
+            }
+          }
+        - {
+            "module": "ucsmsdk.mometa.bios.BiosTokenSettings",
+            "class": "BiosTokenSettings",
+            "properties": {
+                "parent_mo_or_dn": "{{ ucs_org }}/bios-prof-{{bios_policy}}/tokn-featr-Frequency Floor Override/tokn-param-CpuFreqFloor",
+                "is_assigned": "yes",
+                "settings_mo_rn": "Enabled"
+            }
+          }
+        - {
+            "module": "ucsmsdk.mometa.bios.BiosTokenSettings",
+            "class": "BiosTokenSettings",
+            "properties": {
+                "parent_mo_or_dn": "{{ ucs_org }}/bios-prof-{{bios_policy}}/tokn-featr-Processor Energy Configuration/tokn-param-CpuEngPerfBias",
+                "is_assigned": "yes",
+                "settings_mo_rn": "Performance"
+            }
+          }
+        - {
+            "module": "ucsmsdk.mometa.bios.BiosTokenSettings",
+            "class": "BiosTokenSettings",
+            "properties": {
+                "parent_mo_or_dn": "{{ ucs_org }}/bios-prof-{{bios_policy}}/tokn-featr-LvDIMM Support/tokn-param-LvDDRMode",
+                "is_assigned": "yes",
+                "settings_mo_rn": "Performance-Mode"
+            }
+          }
+    when: bios_policy_hana is defined and ucs_state == 'present'
+

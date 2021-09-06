@@ -1,0 +1,85 @@
+---
+################################################################################
+#
+# Title:        31-server-pool.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure Server Pool in UCS Manager
+#
+# Variables:    server_pool_name = Name of the server pool
+#               ucs_org = Name of the Sub-Oganization
+#		rack_list = List of rack server
+#		blade_list = List of blade server
+#
+# Modules:      ucs_managed_objects
+#
+# URLs:         https://galaxy.ansible.com/cisco/ucs
+#               https://developer.cisco.com/site/ucs-dev-center/
+#
+# Built-in help:
+# ansible-doc 
+#
+################################################################################
+#
+#- hosts: ucs*
+#  connection: local
+#  gather_facts: no
+#  tasks:
+  - name: Set facts
+    set_fact:
+       login_info: &login_info
+         hostname: "{{ ucs_hostname }}"
+         username: "{{ ucs_username | default(omit) }}"
+         password: "{{ ucs_password | default('password') }}"
+         state: "{{ ucs_state | default(omit) }}"
+
+  - name: 30 Configure Server Pool for Rack Server
+    ucs_managed_objects: 
+      <<: *login_info
+      objects:
+        - {
+          "module": "ucsmsdk.mometa.compute.ComputePool",
+          "class": "ComputePool",
+          "properties": {
+              "parent_mo_or_dn": "{{ ucs_org }}",
+              "name": "{{ server_pool_name }}",
+              },
+              "children": [
+              {
+                "module": "ucsmsdk.mometa.compute.ComputePooledRackUnit",
+                "class": "ComputePooledRackUnit",
+                "properties": {
+                  "id": "{{ item.id }}"
+                }
+              },
+              ]
+            }
+    with_list: "{{ rack_list }}"
+    when: rack_list is defined
+
+
+  - name: 30 Configure Server Pool for Blade Server
+    ucs_managed_objects: 
+      <<: *login_info
+      objects:
+        - {
+          "module": "ucsmsdk.mometa.compute.ComputePool",
+          "class": "ComputePool",
+          "properties": {
+              "parent_mo_or_dn": "{{ ucs_org }}",
+              "name": "{{ server_pool_name }}",
+              },
+              "children": [
+              {
+                "module": "ucsmsdk.mometa.compute.ComputePooledSlot",
+                "class": "ComputePooledSlot",
+                "properties": {
+                  "chassis_id": "{{ item.chassis_number}}",
+                  "slot_id": "{{ item.slot_number }}"
+                }
+              },
+              ]
+            }
+    with_list: "{{ blade_list }}"
+    when: blade_list is defined
+

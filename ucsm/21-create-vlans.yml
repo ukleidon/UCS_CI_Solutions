@@ -1,0 +1,62 @@
+---
+################################################################################
+#
+# Title:        21-create-vlans.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure VLANs in UCS Manager
+#
+# Variables:    vlan_list = List of VLANS to create
+#               dis_vlan_list = List of VLANS to create for Disjoint L2
+#               configure_disjoint_l2 = Must be "true to configure Disjoint L2
+#
+# Modules:      ucs_vlans
+#
+# URLs:         https://galaxy.ansible.com/cisco/ucs
+#               https://developer.cisco.com/site/ucs-dev-center/
+#
+# Built-in help:
+# ansible-doc cisco.ucs.ucs_vlans
+#
+################################################################################
+#
+#- hosts: ucs*
+#  connection: local
+#  collections:
+#  - cisco.ucs
+#  gather_facts: no
+#  tasks:
+    - name: Set facts
+      set_fact:
+         login_info: &login_info
+           hostname: "{{ ucs_hostname }}"
+           username: "{{ ucs_username | default(omit) }}"
+           password: "{{ ucs_password | default('password') }}"
+           state: "{{ ucs_state | default(omit) }}"
+
+    - name: 21 Create VLANs
+      ucs_vlans:
+        <<: *login_info
+        name: "{{ item.name }}"
+        id: "{{ item.id }}"
+        fabric: "{{ item.fabric | default(omit) }}"
+        native: "{{ item.native | default(omit) }}"
+      loop: "{{ vlan_list }}"
+      when: vlan_list is defined
+
+
+# ------------------- Configuring Disjoint Layer 2 networking on UCS ------------------------------- #
+# 
+# configure_disjoint_l2 must be set to 'true'
+#
+    - name: 21 Create VLANs for Disjoint L2
+      ucs_vlans:
+        <<: *login_info
+        name: "{{ item.name }}"
+        id: "{{ item.id }}"
+        fabric: "{{ item.fabric | default(omit) }}"
+        native: "{{ item.native | default(omit) }}"
+      loop: "{{ dis_vlan_list }}"
+      when: dis_vlan_list is defined and configure_disjoint_l2 == 'true'
+#
+

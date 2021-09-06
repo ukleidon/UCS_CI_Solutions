@@ -1,0 +1,137 @@
+---
+################################################################################
+#
+# Title:        28-vmedia-policy.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure vMedia Policy in UCS Manager to support automated OS install
+#
+# Variables:    vmedia_list = List of vMedia policies to configure
+#
+# Modules:      ucs_managed_objects
+#
+# URLs:         https://galaxy.ansible.com/cisco/ucs
+#               https://developer.cisco.com/site/ucs-dev-center/
+#
+# Built-in help:
+# ansible-doc 
+#
+################################################################################
+#
+#- hosts: ucs*
+#  connection: local
+#  collections:
+#  - cisco.ucs
+#  gather_facts: no
+#  tasks:
+  - name: Set facts
+    set_fact:
+       login_info: &login_info
+         hostname: "{{ ucs_hostname }}"
+         username: "{{ ucs_username | default(omit) }}"
+         password: "{{ ucs_password | default('password') }}"
+         state: "{{ ucs_state | default(omit) }}"
+
+  - name: 28 read vmedia for unattended installation
+    stat:
+      path: "{{ ua_tmp_vmedia_list_file }}"
+    register: include_file
+
+  - name: 28 read vmedia for unattended installation
+    include_vars: "{{ ua_tmp_vmedia_list_file }}"
+    when: include_file.stat.exists
+
+  - name: 28 add vmedia for unattended installation to vmedia_list
+    set_fact:
+      vmedia_list: "{{ vmedia_list + vmedia_list_ua }}"
+    when: include_file.stat.exists
+
+  - name: 28 Create vMedia Policy w/o Kickstart image
+    ucs_managed_objects: 
+      <<: *login_info
+      objects:
+         - {
+             "module": "ucsmsdk.mometa.cimcvmedia.CimcvmediaMountConfigPolicy",
+             "class": "CimcvmediaMountConfigPolicy",
+             "properties": {
+                 "parent_mo_or_dn": "org-root",
+                 "name": "{{ item.name }}"
+             },
+             "children": [
+                 {
+                     "module": "ucsmsdk.mometa.cimcvmedia.CimcvmediaConfigMountEntry",
+                     "class": "CimcvmediaConfigMountEntry",
+                     "properties": {
+                         "device_type": "{{ item.device_type }}",
+                         "image_file_name": "{{ item.file_name }}",
+                         "image_path": "{{ item.file_path }}",
+                         "mapping_name": "{{ item.mapping_name }}",
+                         "mount_protocol": "{{ item.mount_proto }}",
+                         "remote_ip_address": "{{ item.remote_ip }}"
+                     },
+                 },
+             ]
+         }
+    loop: "{{ vmedia_list }}"
+    when: vmedia_list is defined and state == 'present' and item.ks_remote_ip is not defined
+
+
+
+  - name: 28 Create vMedia Policy with Kickstart image
+    ucs_managed_objects: 
+      <<: *login_info
+      objects:
+         - {
+             "module": "ucsmsdk.mometa.cimcvmedia.CimcvmediaMountConfigPolicy",
+             "class": "CimcvmediaMountConfigPolicy",
+             "properties": {
+                 "parent_mo_or_dn": "org-root",
+                 "name": "{{ item.name }}"
+             },
+             "children": [
+                 {
+                     "module": "ucsmsdk.mometa.cimcvmedia.CimcvmediaConfigMountEntry",
+                     "class": "CimcvmediaConfigMountEntry",
+                     "properties": {
+                         "device_type": "{{ item.device_type }}",
+                         "image_file_name": "{{ item.file_name }}",
+                         "image_path": "{{ item.file_path }}",
+                         "mapping_name": "{{ item.mapping_name }}",
+                         "mount_protocol": "{{ item.mount_proto }}",
+                         "remote_ip_address": "{{ item.remote_ip }}"
+                     },
+                 },
+                 {
+                     "module": "ucsmsdk.mometa.cimcvmedia.CimcvmediaConfigMountEntry",
+                     "class": "CimcvmediaConfigMountEntry",
+                     "properties": {
+                         "device_type": "{{ item.ks_device_type| default(omit) }}",
+                         "image_name_variable": "{{ item.ks_image_type | default(omit) }}",
+                         "image_file_name": "{{ item.ks_image_name | default(omit) }}",
+                         "image_path": "{{ item.ks_file_path | default(omit) }}",
+                         "mapping_name": "{{ item.ks_mapping_name | default(omit) }}",
+                         "mount_protocol": "{{ item.ks_mount_proto | default(omit) }}",
+                         "remote_ip_address": "{{ item.ks_remote_ip | default(omit) }}"
+                     },
+                 }
+             ]
+         }
+    loop: "{{ vmedia_list }}"
+    when: vmedia_list is defined and state == 'present' and item.ks_remote_ip is defined
+
+
+  - name: 28 Delete vMedia Policy
+    ucs_managed_objects: 
+      <<: *login_info
+      objects:
+         - {
+             "module": "ucsmsdk.mometa.cimcvmedia.CimcvmediaMountConfigPolicy",
+             "class": "CimcvmediaMountConfigPolicy",
+             "properties": {
+                 "parent_mo_or_dn": "org-root",
+                 "name": "{{ item.name }}"
+             }
+         }
+    loop: "{{ vmedia_list }}"
+    when: vmedia_list is defined and state == 'absent'
+

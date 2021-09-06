@@ -1,0 +1,39 @@
+---
+################################################################################
+#
+# Title:        33-wwn-pools.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure World Wide Name Pools in UCS Manager
+#
+# Variables:    wwn_pool_list = List of pools to create
+#
+# Modules:      ucs_wwn_pool
+#
+# URLs:         https://galaxy.ansible.com/cisco/ucs
+#               https://developer.cisco.com/site/ucs-dev-center/
+#
+# Built-in help:
+# ansible-doc cisco.ucs.ucs_wwn_pool
+#
+################################################################################
+#
+#- hosts: ucs*
+#  connection: local
+#  gather_facts: no
+#  tasks:
+
+  - name: 32 Configure WWPN/WWNN Pools
+    ucs_wwn_pool:
+      hostname: "{{ ucs_hostname }}"
+      username: "{{ ucs_username | default(omit) }}"
+      password: "{{ ucs_password | default('password') }}"
+      state: "{{ ucs_state | default(omit) }}"
+      name: "{{ item.name }}"
+      purpose: "{{ item.purpose }}"
+      org_dn: "org-root"
+      first_addr: "{{ item.first_address }}"
+      last_addr: "{{ item.last_address }}"
+    with_list: "{{ wwn_pool_list }}"
+    when: configure_fc == 'true' and wwn_pool_list is defined
+

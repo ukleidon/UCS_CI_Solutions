@@ -1,0 +1,44 @@
+---
+################################################################################
+#
+# Title:        17-local-disk-config.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure Local Disk Configuration Policy in UCS Manager
+#
+# Variables:    local_disk_policy_list = List of the Policies 
+#
+# Modules:      ucs_managed_objects
+#
+# URLs:         https://galaxy.ansible.com/cisco/ucs
+#               https://developer.cisco.com/site/ucs-dev-center/
+#
+# Built-in help:
+# ansible-doc 
+#
+################################################################################
+# 
+#- hosts: ucs*
+#  connection: local
+#  collections:
+#  - cisco.ucs
+#  gather_facts: no
+#  tasks:
+
+    - name: 17 Create Local Disk Configuration Policy
+      ucs_managed_objects:
+        hostname: "{{ ucs_hostname }}"
+        username: "{{ ucs_username | default(omit) }}"
+        password: "{{ ucs_password | default('password') }}"
+        state: "{{ ucs_state | default(omit) }}"
+        objects:
+        - module: ucsmsdk.mometa.storage.StorageLocalDiskConfigPolicy
+          class: StorageLocalDiskConfigPolicy
+          properties:
+             parent_mo_or_dn: org-root
+             name: "{{ item.name }}"
+             descr: "{{ item.descr }}"
+             mode: "{{ item.mode }}"
+      loop: "{{ local_disk_policy_list }}"
+      when: local_disk_policy_list is defined
+

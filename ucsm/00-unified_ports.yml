@@ -1,0 +1,306 @@
+---
+################################################################################
+#
+# Title:        00-unified_ports.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure Unified Ports as FC ports on 6300 and 6400 Series 
+#		Fabric Interconnects with Ansible modules.
+#               Number of FC ports to configure must be 4, 8, or 16 on slot 2
+#
+# Variables:    fc_port_number = Number of FC ports to configure
+#               configure_fc = Must be 'true' to activate FC port configuration
+#
+# Modules:      ucs_managed_objects
+#
+# URLs:         https://galaxy.ansible.com/cisco/ucs
+#               https://developer.cisco.com/site/ucs-dev-center/
+#
+# Built-in help:
+# ansible-doc
+#
+################################################################################
+#
+#- hosts: ucs*
+#  connection: local
+#  collections:
+#  - cisco.ucs
+#  gather_facts: no
+#  tasks:
+    - name: Set facts
+      set_fact:
+         login_info: &login_info
+           hostname: "{{ ucs_hostname }}"
+           username: "{{ ucs_username | default(omit) }}"
+           password: "{{ ucs_password | default('password') }}"
+           state: "{{ ucs_state | default(omit) }}"
+
+    - name: 00 Configure FOUR FC Ports on Fabric A
+      register: fc_ports
+      ucs_managed_objects:
+        <<: *login_info
+        objects:
+          - {
+              "module": "ucsmsdk.mometa.fabric.FabricFcSan",
+              "class": "FabricFcSan",
+              "properties": {
+                "parent_mo_or_dn": "fabric/san",
+                "id": "A"
+              },
+              "children": [
+                {
+                  "module": "ucsmsdk.mometa.fabric.FabricFcSanEp",
+                  "class": "FabricFcSanEp",
+                  "properties": {
+                    "port_id": "1",
+                    "slot_id": "1"
+                  }
+                },
+                {
+                  "module": "ucsmsdk.mometa.fabric.FabricFcSanEp",
+                  "class": "FabricFcSanEp",
+                  "properties": {
+                    "port_id": "2",
+                    "slot_id": "1"
+                  }
+                },
+                {
+                  "module": "ucsmsdk.mometa.fabric.FabricFcSanEp",
+                  "class": "FabricFcSanEp",
+                  "properties": {
+                    "port_id": "3",
+                    "slot_id": "1"
+                  }
+                },
+                {
+                  "module": "ucsmsdk.mometa.fabric.FabricFcSanEp",
+                  "class": "FabricFcSanEp",
+                  "properties": {
+                    "port_id": "4",
+                    "slot_id": "1"
+                  }
+                },
+              ]
+            }
+      when: fc_port_number == '4' and configure_fc == 'true' and ucs_state == 'present'
+        
+    - name: 00 Configure EIGHT FC Ports on Fabric A
+      register: fc_ports
+      ucs_managed_objects:
+        <<: *login_info
+        objects:
+          - {
+              "module": "ucsmsdk.mometa.fabric.FabricFcSan",
+              "class": "FabricFcSan",
+              "properties": {
+                "parent_mo_or_dn": "fabric/san",
+                "id": "A"
+              },
+              "children": [
+                {
+                  "module": "ucsmsdk.mometa.fabric.FabricFcSanEp",
+                  "class": "FabricFcSanEp",
+                  "properties": {
+                    "port_id": "1",
+                    "slot_id": "1"
+                  }
+                },
+                {
+                  "module": "ucsmsdk.mometa.fabric.FabricFcSanEp",
+                  "class": "FabricFcSanEp",
+                  "properties": {
+                    "port_id": "2",
+                    "slot_id": "1"
+                  }
+                },
+                {
+                  "module": "ucsmsdk.mometa.fabric.FabricFcSanEp",
+                  "class": "FabricFcSanEp",
+                  "properties": {
+                    "port_id": "3",
+                    "slot_id": "1"
+                  }
+                },
+                {
+                  "module": "ucsmsdk.mometa.fabric.FabricFcSanEp",
+                  "class": "FabricFcSanEp",
+                  "properties": {
+                    "port_id": "4",
+                    "slot_id": "1"
+                  }
+                },
+                {
+                  "module": "ucsmsdk.mometa.fabric.FabricFcSanEp",
+                  "class": "FabricFcSanEp",
+                  "properties": {
+                    "port_id": "5",
+                    "slot_id": "1"
+                  }
+                },
+                {
+                  "module": "ucsmsdk.mometa.fabric.FabricFcSanEp",
+                  "class": "FabricFcSanEp",
+                  "properties": {
+                    "port_id": "6",
+                    "slot_id": "1"
+                  }
+                },
+                {
+                  "module": "ucsmsdk.mometa.fabric.FabricFcSanEp",
+                  "class": "FabricFcSanEp",
+                  "properties": {
+                    "port_id": "7",
+                    "slot_id": "1"
+                  }
+                },
+                {
+                  "module": "ucsmsdk.mometa.fabric.FabricFcSanEp",
+                  "class": "FabricFcSanEp",
+                  "properties": {
+                    "port_id": "8",
+                    "slot_id": "1"
+                  }
+                },
+              ]
+            }
+      when: fc_port_number == '8' and configure_fc == 'true' and ucs_state == 'present'
+        
+    - pause: 
+        prompt: "Configuring an FC port the first time will cause a FI reboot \n
+                Hit enter after FI is back online"
+ 
+ 
+    - name: 00 Configure FOUR FC Ports on Fabric B
+      register: fc_ports
+      ucs_managed_objects:
+        <<: *login_info
+        objects:
+          - {
+              "module": "ucsmsdk.mometa.fabric.FabricFcSan",
+              "class": "FabricFcSan",
+              "properties": {
+                "parent_mo_or_dn": "fabric/san",
+                "id": "B"
+              },
+              "children": [
+                {
+                  "module": "ucsmsdk.mometa.fabric.FabricFcSanEp",
+                  "class": "FabricFcSanEp",
+                  "properties": {
+                    "port_id": "1",
+                    "slot_id": "1"
+                  }
+                },
+                {
+                  "module": "ucsmsdk.mometa.fabric.FabricFcSanEp",
+                  "class": "FabricFcSanEp",
+                  "properties": {
+                    "port_id": "2",
+                    "slot_id": "1"
+                  }
+                },
+                {
+                  "module": "ucsmsdk.mometa.fabric.FabricFcSanEp",
+                  "class": "FabricFcSanEp",
+                  "properties": {
+                    "port_id": "3",
+                    "slot_id": "1"
+                  }
+                },
+                {
+                  "module": "ucsmsdk.mometa.fabric.FabricFcSanEp",
+                  "class": "FabricFcSanEp",
+                  "properties": {
+                    "port_id": "4",
+                    "slot_id": "1"
+                  }
+                },
+              ]
+            }
+      when: fc_port_number == '4' and configure_fc == 'true' and ucs_state == 'present'
+        
+    - name: 00 Configure EIGHT FC Ports on Fabric B
+      register: fc_ports
+      ucs_managed_objects:
+        <<: *login_info
+        objects:
+          - {
+              "module": "ucsmsdk.mometa.fabric.FabricFcSan",
+              "class": "FabricFcSan",
+              "properties": {
+                "parent_mo_or_dn": "fabric/san",
+                "id": "B"
+              },
+              "children": [
+                {
+                  "module": "ucsmsdk.mometa.fabric.FabricFcSanEp",
+                  "class": "FabricFcSanEp",
+                  "properties": {
+                    "port_id": "1",
+                    "slot_id": "1"
+                  }
+                },
+                {
+                  "module": "ucsmsdk.mometa.fabric.FabricFcSanEp",
+                  "class": "FabricFcSanEp",
+                  "properties": {
+                    "port_id": "2",
+                    "slot_id": "1"
+                  }
+                },
+                {
+                  "module": "ucsmsdk.mometa.fabric.FabricFcSanEp",
+                  "class": "FabricFcSanEp",
+                  "properties": {
+                    "port_id": "3",
+                    "slot_id": "1"
+                  }
+                },
+                {
+                  "module": "ucsmsdk.mometa.fabric.FabricFcSanEp",
+                  "class": "FabricFcSanEp",
+                  "properties": {
+                    "port_id": "4",
+                    "slot_id": "1"
+                  }
+                },
+                {
+                  "module": "ucsmsdk.mometa.fabric.FabricFcSanEp",
+                  "class": "FabricFcSanEp",
+                  "properties": {
+                    "port_id": "5",
+                    "slot_id": "1"
+                  }
+                },
+                {
+                  "module": "ucsmsdk.mometa.fabric.FabricFcSanEp",
+                  "class": "FabricFcSanEp",
+                  "properties": {
+                    "port_id": "6",
+                    "slot_id": "1"
+                  }
+                },
+                {
+                  "module": "ucsmsdk.mometa.fabric.FabricFcSanEp",
+                  "class": "FabricFcSanEp",
+                  "properties": {
+                    "port_id": "7",
+                    "slot_id": "1"
+                  }
+                },
+                {
+                  "module": "ucsmsdk.mometa.fabric.FabricFcSanEp",
+                  "class": "FabricFcSanEp",
+                  "properties": {
+                    "port_id": "8",
+                    "slot_id": "1"
+                  }
+                },
+              ]
+            }
+      when: fc_port_number == '8' and configure_fc == 'true' and ucs_state == 'present'
+        
+    - pause: 
+        prompt: "Configuring an FC port the first time will cause a FI reboot \n
+                Hit enter after FI is back online"
+ 

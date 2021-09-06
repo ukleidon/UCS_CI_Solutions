@@ -1,0 +1,109 @@
+---
+################################################################################
+#
+# Title:        23-eth-adapter-policy.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure Ethernet Adapter Policy in UCS Manager
+#
+# Variables:    eth_adapter_list = List of ethernet adapter policies to configure
+#
+# Modules:      ucs_managed_objects
+#
+# URLs:         https://galaxy.ansible.com/cisco/ucs
+#               https://developer.cisco.com/site/ucs-dev-center/
+#
+# Built-in help:
+# ansible-doc 
+#
+################################################################################
+#
+#- hosts: ucs*
+#  connection: local
+#  gather_facts: no
+#  tasks:
+  - name: Set facts
+    set_fact:
+       login_info: &login_info
+         hostname: "{{ ucs_hostname }}"
+         username: "{{ ucs_username | default(omit) }}"
+         password: "{{ ucs_password | default('password') }}"
+         state: "{{ ucs_state | default(omit) }}"
+
+  - name: 23 Configure Ethernet Adapter Policy
+    ucs_managed_objects: 
+      <<: *login_info
+      objects:      
+        - {
+            "module": "ucsmsdk.mometa.adaptor.AdaptorHostEthIfProfile",
+            "class": "AdaptorHostEthIfProfile",
+            "properties": {
+                "parent_mo_or_dn": "{{ ucs_org }}",
+                "name": "{{ item.name }}",
+                "descr": "{{ item.descr }}"
+            },
+            "children": [
+                {
+                    "module": "ucsmsdk.mometa.adaptor.AdaptorEthWorkQueueProfile",
+                    "class": "AdaptorEthWorkQueueProfile",
+                    "properties": {
+                        "count": "{{ item.workqueue }}",
+                        "ring_size": "{{ item.workqring }}"
+                    }
+                },
+                {
+                    "module": "ucsmsdk.mometa.adaptor.AdaptorEthRecvQueueProfile",
+                    "class": "AdaptorEthRecvQueueProfile",
+                    "properties": {
+                        "count": "{{ item.recvqueue }}",
+                        "ring_size": "{{ item.recvqring }}"
+                    }
+                },
+                {
+                    "module": "ucsmsdk.mometa.adaptor.AdaptorEthCompQueueProfile",
+                    "class": "AdaptorEthCompQueueProfile",
+                    "properties": {
+                        "count": "{{ item.compqueue }}"
+                    }
+                },
+                {
+                    "module": "ucsmsdk.mometa.adaptor.AdaptorEthInterruptProfile",
+                    "class": "AdaptorEthInterruptProfile",
+                    "properties": {
+                        "count": "{{ item.interrupt }}"
+                    }
+                },
+                {
+                    "module": "ucsmsdk.mometa.adaptor.AdaptorRssProfile",
+                    "class": "AdaptorRssProfile",
+                    "properties": {
+                        "receive_side_scaling": "{{ item.recside_scaling }}"
+                    }
+                },
+                {
+                    "module": "ucsmsdk.mometa.adaptor.AdaptorEthArfsProfile",
+                    "class": "AdaptorEthArfsProfile",
+                    "properties": {
+                        "accelarated_rfs": "{{ item.accel_rfs }}"
+                    }
+                }
+            ]
+          }
+    loop: "{{ eth_adapter_list }}"
+    when: eth_adapter_list is defined and ucs_state == 'present'
+
+  - name: 23 Delete Ethernet Adapter Policy
+    ucs_managed_objects: 
+      <<: *login_info
+      objects:      
+        - {
+            "module": "ucsmsdk.mometa.adaptor.AdaptorHostEthIfProfile",
+            "class": "AdaptorHostEthIfProfile",
+            "properties": {
+                "parent_mo_or_dn": "{{ ucs_org }}",
+                "name": "{{ item.name }}",
+                "descr": "{{ item.descr }}"
+            }
+          }
+    loop: "{{ eth_adapter_list }}"
+    when: eth_adapter_list is defined and ucs_state == 'absent'

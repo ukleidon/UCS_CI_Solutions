@@ -1,0 +1,163 @@
+---
+################################################################################
+#
+# Title:        05-qos-system.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure Quality of Service system classes
+#               !!! Please check with the network admin team if QoS/CoS is configured
+#               !!! in your network before configuring QoS in UCS.
+#		QoS system class is an central configuration in UCS domain and 
+#    		used by all systems running in it. Changing QoS system class can
+#		cause issues for already running systems.
+#
+# Variables:    Due to the nature of QoS architcture the definition is defined in
+#		this file and not based on variables. This will ensure that all
+#		UCS domains in the network uses the same settings.
+#
+# Modules:      ucs_system_qos
+#
+# URLs:         https://galaxy.ansible.com/cisco/ucs
+#               https://developer.cisco.com/site/ucs-dev-center/
+#
+# Built-in help:
+# ansible-doc cisco.ucs.ucs_system_qos
+#
+################################################################################
+#
+#- hosts: ucs*
+#  connection: local
+#  collections:
+#  - cisco.ucs
+#  gather_facts: no
+#
+#  tasks:
+   - name: Set facts
+     set_fact:
+        login_info: &login_info
+          hostname: "{{ ucs_hostname }}"
+          username: "{{ ucs_username | default(omit) }}"
+          password: "{{ ucs_password | default('password') }}"
+
+   - block :
+     - name: 05 Configure UCS System QoS Class Platinum
+       ucs_system_qos:
+         <<: *login_info
+         priority: 'platinum'
+         admin_state: 'enabled'
+         multicast_optimize: 'no'
+         weight: '10'
+         cos: '5'
+         mtu: '9216'
+         drop: 'no-drop'
+     - name: Configure UCS System QoS Class Gold
+       ucs_system_qos:
+         <<: *login_info
+         priority: 'gold'
+         admin_state: 'enabled'
+         multicast_optimize: 'no'
+         weight: '8'
+         cos: '4'
+         mtu: '9216'
+         drop: 'drop'
+     - name: Configure UCS System QoS Class Silver
+       ucs_system_qos:
+         <<: *login_info
+         priority: 'silver'
+         admin_state: 'enabled'
+         multicast_optimize: 'no'
+         weight: '6'
+         cos: '2'
+         mtu: '9216'
+         drop: 'drop'
+     - name: Configure UCS System QoS Class Bronze
+       ucs_system_qos:
+         <<: *login_info
+         priority: 'bronze'
+         admin_state: 'enabled'
+         multicast_optimize: 'no'
+         weight: '4'
+         cos: '1'
+         mtu: '9216'
+         drop: 'drop'
+     - name: Configure UCS System QoS Class Best-Effort
+       ucs_system_qos:
+         <<: *login_info
+         priority: 'best-effort'
+         admin_state: 'enabled'
+         multicast_optimize: 'no'
+         weight: '2'
+         mtu: '9216'
+         cos: '0'
+         drop: 'drop'
+     - name: 05 Configure UCS System QoS Class Fibre-Channel
+       ucs_system_qos:
+         <<: *login_info
+         priority: 'fc'
+         admin_state: 'enabled'
+         multicast_optimize: 'no'
+         weight: '5'
+         cos: '3'
+     when: ucs_state == 'present'
+
+### Configure UCS factory defaults with state absent
+   - block :
+     - name: 05 Set UCS System QoS Class Platinum to Factory Default
+       ucs_system_qos:
+         <<: *login_info
+         priority: 'platinum'
+         admin_state: 'disabled'
+         multicast_optimize: 'no'
+         weight: '1'
+         cos: '5'
+         mtu: 'normal'
+         drop: 'drop'
+     - name: Set UCS System QoS Class Gold to Factory Default
+       ucs_system_qos:
+         <<: *login_info
+         priority: 'gold'
+         admin_state: 'disabled'
+         multicast_optimize: 'no'
+         weight: '1'
+         cos: '4'
+         mtu: 'normal'
+         drop: 'drop'
+     - name: Set UCS System QoS Class Silver to Factory Default
+       ucs_system_qos:
+         <<: *login_info
+         priority: 'silver'
+         admin_state: 'disabled'
+         multicast_optimize: 'no'
+         weight: '1'
+         cos: '2'
+         mtu: 'normal'
+         drop: 'drop'
+     - name: Set UCS System QoS Class Bronze to Factory Default
+       ucs_system_qos:
+         <<: *login_info
+         priority: 'bronze'
+         admin_state: 'disabled'
+         multicast_optimize: 'no'
+         weight: '1'
+         cos: '1'
+         mtu: 'normal'
+         drop: 'drop'
+     - name: Set UCS System QoS Class Best-Effort to Factory Default
+       ucs_system_qos:
+         <<: *login_info
+         priority: 'best-effort'
+         admin_state: 'enabled'
+         multicast_optimize: 'no'
+         weight: 'best-effort'
+         mtu: 'normal'
+         cos: '0'
+         drop: 'drop'
+     - name: 05 Set UCS System QoS Class Fibre-Channel to Factory Default
+       ucs_system_qos:
+         <<: *login_info
+         priority: 'fc'
+         admin_state: 'enabled'
+         multicast_optimize: 'no'
+         cos: '3'
+         weight: 'best-effort'
+     when: ucs_state == 'absent'

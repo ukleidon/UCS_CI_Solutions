@@ -1,0 +1,36 @@
+---
+################################################################################
+#
+# Title:        02-1-dns-config.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure DNS Server in UCS Manager
+#
+# Variables:    dns_server = List of DNS server IP addresses
+#
+# Modules:      ucs_dns_server
+#
+# URLs:         https://galaxy.ansible.com/cisco/ucs
+#               https://developer.cisco.com/site/ucs-dev-center/
+#
+# Built-in help:
+# ansible-doc cisco.ucs.ucs_dns_server
+#
+################################################################################
+#
+#- hosts: ucs*
+#  connection: local
+#  collections:
+#  - cisco.ucs
+#  gather_facts: no
+#  tasks:
+
+    - name: 02 Configure DNS server list
+      ucs_dns_server:
+        hostname: "{{ ucs_hostname }}"
+        username: "{{ ucs_username | default(omit) }}"
+        password: "{{ ucs_password | default('password') }}"
+        state: "{{ ucs_state | default(omit) }}"
+        dns_server: "{{ item.name }}"
+      loop: "{{ dns_servers }}"
+      when: dns_servers is defined

@@ -1,0 +1,61 @@
+---
+################################################################################
+#
+# Title:        90-get-ipinfo.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2021-03-31
+# Description:  Gets all assigned IP addresses from IP address pools
+#               with Ansible modules.
+#
+# Variables:    temp_ip_list_file = File name to write the information 
+#
+# Modules:      ucs_query
+#
+# URLs:         https://galaxy.ansible.com/cisco/ucs
+#               https://developer.cisco.com/site/ucs-dev-center/
+#
+# Built-in help:
+# ansible-doc cisco.ucs.ucs_query
+#
+################################################################################
+#
+#- hosts: ucs*
+#  connection: local
+#  gather_facts: no
+#  vars:
+#    temp_ip_list_file: /tmp/ip_templ.out
+#  tasks:
+
+    - name: 01 Get list IP addressess of an configured in ip pools
+      register: ucsm
+      cisco.ucs.ucs_query:
+        hostname: "{{ ucs_hostname }}"
+        username: "{{ ucs_username | default(omit) }}"
+        password: "{{ ucs_password | default('password') }}"
+        class_ids: ippoolPooled
+        delegate_to: localhost
+
+    - name: Collecting data
+      set_fact:
+        ip_info_list: 
+          "{{ ip_info_list | default ([]) + [
+              { 'ip' : item.id, 'assigned' : item.assigned_to_dn }
+          ] }}"
+      loop: "{{ ucsm.objects.ippoolPooled }}"
+      when: item.assigned == "yes"
+      loop_control:
+         label: "{{ item.id }}"
+
+    - name: 02 Debugging output
+      debug: var=ip_info_list
+      when: debugging == 'true'
+
+    - name: 02 Create file
+      file:
+        path: "{{ temp_ip_list_file }}"
+        state: touch
+
+    - name: 03 Write header into file
+      lineinfile:
+        path: "{{ temp_ip_list_file }}"
+        line: ip_info_list {{ ip_info_list }}

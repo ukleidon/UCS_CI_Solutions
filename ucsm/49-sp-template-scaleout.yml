@@ -1,0 +1,217 @@
+---
+################################################################################
+#
+# Title:        49-sp-template-scaleout.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure Service Profile Template for SAP HANA Scale-Out
+#
+# Variables:    ucs_sp_template_scale_out = Name of the Service Proile Template
+#               ucs_org = Name of the Sub-Oganization
+#               Serice Profile Templates use a lot of variables, too
+#               much to list them here in a usesul way.
+#               Please browse through the code below to see all variables.
+#
+# Modules:      ucs_service_profile_template
+#
+# URLs:         https://galaxy.ansible.com/cisco/ucs
+#               https://developer.cisco.com/site/ucs-dev-center/
+#
+# Built-in help:
+# ansible-doc cisco.ucs.ucs_service_profile_template
+#
+################################################################################
+#
+#- hosts: ucs
+#  connection: local
+#  collections:
+#  - cisco.ucs
+#  gather_facts: no
+#  tasks:
+    - name: Set facts
+      set_fact:
+         login_info: &login_info
+           hostname: "{{ ucs_hostname }}"
+           username: "{{ ucs_username | default(omit) }}"
+           password: "{{ ucs_password | default('password') }}"
+           state: "{{ ucs_state | default(omit) }}"
+
+    - name: 49 Create Service Profile Template for SAP HANA Scale Out
+      ucs_service_profile_template:
+        <<: *login_info
+        org_dn: "{{ ucs_org }}"
+        name: "{{ ucs_sp_template_scale_out }}"
+        template_type: updating-template
+        uuid_pool: "{{ ucs_uuid_pool_name }}"
+        lan_connectivity_policy: "{{ ucs_iscsi_boot_hana_scale_out }}"
+        iqn_pool: "{{ ucs_iqn_pool_name }}"
+        boot_policy: "{{ ucs_iscsi_boot_policy_name }}"
+        maintenance_policy: default
+        host_firmware_package: "{{ ucs_host_fw_name }}"
+        bios_policy: "{{ ucs_bios_name }}"
+        power_control_policy: "{{ ucs_pw_ctrl }}"
+        sol_policy: "{{ ucs_sol_name }}"
+      delegate_to: localhost 
+    - name: Assign vNIC/vHBA placement policy to Service Profile Template
+      ucs_managed_objects: 
+          <<: *login_info
+          objects:
+          - module: ucsmsdk.mometa.ls.LsServer
+            class: LsServer
+            properties:
+              parent_mo_or_dn: "{{ ucs_org }}"
+              name: "{{ ucs_sp_template_scale_out }}"
+              vcon_profile_name: "{{ ucs_vnic_placement_name }}"
+    - name: 49 Assign vCon placement to Service Profile Template
+      ucs_managed_objects:
+          <<: *login_info
+          objects:
+          - module: ucsmsdk.mometa.ls.LsServer
+            class: LsServer
+            properties:
+              parent_mo_or_dn: "{{ ucs_org }}"
+              name: "{{ ucs_sp_template_scale_out }}"
+            children:
+              - module: ucsmsdk.mometa.ls.LsVConAssign
+                class: LsVConAssign
+                properties:
+                  admin_vcon: '1'
+                  order: '1'
+                  transport: ethernet
+                  vnic_name: iSCSI-A
+              - module: ucsmsdk.mometa.ls.LsVConAssign
+                class: LsVConAssign
+                properties:
+                  admin_vcon: '1'
+                  order: '2'
+                  transport: ethernet
+                  vnic_name: HANA-node-admin
+              - module: ucsmsdk.mometa.ls.LsVConAssign
+                class: LsVConAssign
+                properties:
+                  admin_vcon: '1'
+                  order: '3'
+                  transport: ethernet
+                  vnic_name: HANA-internode
+              - module: ucsmsdk.mometa.ls.LsVConAssign
+                class: LsVConAssign
+                properties:
+                  admin_vcon: '1'
+                  order: '4'
+                  transport: ethernet
+                  vnic_name: HANA-AppServer
+              - module: ucsmsdk.mometa.ls.LsVConAssign
+                class: LsVConAssign
+                properties:
+                  admin_vcon: '3'
+                  order: '1'
+                  transport: ethernet
+                  vnic_name: iSCSI-B
+              - module: ucsmsdk.mometa.ls.LsVConAssign
+                class: LsVConAssign
+                properties:
+                  admin_vcon: '3'
+                  order: '2'
+                  transport: ethernet
+                  vnic_name: HANA-data
+              - module: ucsmsdk.mometa.ls.LsVConAssign
+                class: LsVConAssign
+                properties:
+                  admin_vcon: '3'
+                  order: '3'
+                  transport: ethernet
+                  vnic_name: HANA-log
+              - module: ucsmsdk.mometa.ls.LsVConAssign
+                class: LsVConAssign
+                properties:
+                  admin_vcon: '3'
+                  order: '4'
+                  transport: ethernet
+                  vnic_name: HANA-node-backup
+#iSCSI Static Target
+    - name: 49 Update Service Profile Template with iSCSI Targets
+      ucs_managed_objects:
+          <<: *login_info
+          objects:
+          - module: ucsmsdk.mometa.ls.LsServer
+            class: LsServer
+            properties:
+                parent_mo_or_dn: "{{ ucs_org }}"
+                name: "{{ ucs_sp_template_scale_out }}"
+                type: updating-template
+            children:
+            - module: ucsmsdk.mometa.vnic.VnicIScsiBootParams
+              class: VnicIScsiBootParams
+              properties:
+                 policy_owner: local
+              children:
+              - module: ucsmsdk.mometa.vnic.VnicIScsiBootVnic
+                class: VnicIScsiBootVnic
+                properties:
+                   name: iSCSI-Boot-A
+                children:
+                - module: ucsmsdk.mometa.vnic.VnicIPv4If
+                  class: VnicIPv4If
+                  properties: {}
+                  children:
+                  - module: ucsmsdk.mometa.vnic.VnicIPv4PooledIscsiAddr
+                    class: VnicIPv4PooledIscsiAddr
+                    properties:
+                       ident_pool_name: "{{ ucs_iscsi_A_ip_pool_name }}"
+                - module: ucsmsdk.mometa.vnic.VnicIScsiStaticTargetIf
+                  class: VnicIScsiStaticTargetIf
+                  properties:
+                     ip_address: "{{ ucs_iscsi_lif_ip_1a }}"
+                     name: "{{ ucs_iscsi_target_name }}"
+                     priority: "1"
+                  children:
+                  - module: ucsmsdk.mometa.vnic.VnicLun
+                    class: VnicLun
+                    properties:
+                       id: "0"
+                - module: ucsmsdk.mometa.vnic.VnicIScsiStaticTargetIf
+                  class: VnicIScsiStaticTargetIf
+                  properties:
+                     ip_address: "{{ ucs_iscsi_lif_ip_2a }}"
+                     name: "{{ ucs_iscsi_target_name }}"
+                     priority: "2"
+                  children:
+                  - module: ucsmsdk.mometa.vnic.VnicLun
+                    class: VnicLun
+                    properties:
+                       id: "0"
+              - module: ucsmsdk.mometa.vnic.VnicIScsiBootVnic
+                class: VnicIScsiBootVnic
+                properties:
+                   name: iSCSI-Boot-B
+                children:
+                - module: ucsmsdk.mometa.vnic.VnicIPv4If
+                  class: VnicIPv4If
+                  properties: {}
+                  children:
+                  - module: ucsmsdk.mometa.vnic.VnicIPv4PooledIscsiAddr
+                    class: VnicIPv4PooledIscsiAddr
+                    properties:
+                       ident_pool_name: "{{ ucs_iscsi_B_ip_pool_name }}"
+                - module: ucsmsdk.mometa.vnic.VnicIScsiStaticTargetIf
+                  class: VnicIScsiStaticTargetIf
+                  properties:
+                     ip_address: "{{ ucs_iscsi_lif_ip_1b }}"
+                     name: "{{ ucs_iscsi_target_name }}"
+                     priority: "1"
+                  children:
+                  - module: ucsmsdk.mometa.vnic.VnicLun
+                    class: VnicLun
+                    properties:
+                       id: "0"
+                - module: ucsmsdk.mometa.vnic.VnicIScsiStaticTargetIf
+                  class: VnicIScsiStaticTargetIf
+                  properties:
+                     ip_address: "{{ ucs_iscsi_lif_ip_2b }}"
+                     name: "{{ ucs_iscsi_target_name }}"
+                     priority: "2"
+                  children:
+                  - module: ucsmsdk.mometa.vnic.VnicLun
+                    class: VnicLun
+                    properties:
+                       id: "0"

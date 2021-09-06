@@ -1,0 +1,38 @@
+---
+################################################################################
+#
+# Title:        34-vsan.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure VSAN in UCS Manager
+#
+# Variables:    vsan_list = List of VSANs to configure
+#
+# Modules:      ucs_vsans
+#
+# URLs:         https://galaxy.ansible.com/cisco/ucs
+#               https://developer.cisco.com/site/ucs-dev-center/
+#
+# Built-in help:
+# ansible-doc cisco.ucs.ucs_vsans
+#
+################################################################################
+#
+#- hosts: ucs*
+#  connection: local
+#  gather_facts: no
+#  tasks:
+
+  - name: 33 Configure VSANs
+    ucs_vsans: 
+      hostname: "{{ ucs_hostname }}"
+      username: "{{ ucs_username | default(omit) }}"
+      password: "{{ ucs_password | default('password') }}"
+      state: "{{ ucs_state | default(omit) }}"
+      name: "{{ item.name }}"
+      fabric: "{{ item.fabric }}"
+      vsan_id: "{{ item.vsan_id }}"
+      vlan_id: "{{ item.fcoe_vlan }}"
+    loop: "{{ vsan_list }}"
+    when: vsan_list is defined and configure_fc == 'true'
+

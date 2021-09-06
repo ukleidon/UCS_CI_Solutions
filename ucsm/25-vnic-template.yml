@@ -1,0 +1,69 @@
+---
+################################################################################
+#
+# Title:        25-vnic-template.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure vNIC templates in UCS Manager
+#
+# Variables:    vnic_template_list = List of vNIC templates to configure
+#
+# Modules:      ucs_vnic_template
+#
+# URLs:         https://galaxy.ansible.com/cisco/ucs
+#               https://developer.cisco.com/site/ucs-dev-center/
+#
+# Built-in help:
+# ansible-doc cisco.ucs.ucs_vnic_template
+#
+################################################################################
+#
+#- hosts: ucs*
+#  connection: local
+#  collections:
+#  - cisco.ucs
+#  gather_facts: no
+#  tasks:
+    - name: Set facts
+      set_fact:
+         login_info: &login_info
+           hostname: "{{ ucs_hostname }}"
+           username: "{{ ucs_username | default(omit) }}"
+           password: "{{ ucs_password | default('password') }}"
+           state: "{{ ucs_state | default(omit) }}"
+
+    - name: 25 Configure vNIC Templates
+      ucs_vnic_template:
+        <<: *login_info
+        org_dn: "{{ ucs_org }}"
+        name: "{{ item.name }}"
+        fabric: "{{ item.fabric }}"
+        mac_pool: "{{ item.mac_pool | default(omit) }}"
+        mtu: "{{ item.mtu | default(omit) }}"
+        qos_policy: "{{ item.qos_policy | default(omit) }}"
+        target: "{{ item.target | default(omit) }}"
+        network_control_policy: "{{ item.network_control_policy | default(omit) }}"
+        peer_redundancy_template: "{{ item.redundant_peer | default(omit) }}"
+        redundancy_type: "{{ item.redundancy_type | default(omit) }}"
+        template_type: "{{ item.template_type | default(omit) }}"
+        vlans_list: "{{ item.vlans }}"
+      loop: "{{ vnic_template_list }}"
+      when: vnic_template_list is defined and ucs_state == 'present'
+
+    - name: 25 Configure vNIC Templates for iSCSI
+      ucs_vnic_template:
+        <<: *login_info
+        org_dn: "{{ ucs_org }}"
+        name: "{{ item.name }}"
+        fabric: "{{ item.fabric }}"
+        mac_pool: "{{ item.mac_pool | default(omit) }}"
+        mtu: "{{ item.mtu | default(omit) }}"
+        qos_policy: "{{ item.qos_policy | default(omit) }}"
+        target: "{{ item.target | default(omit) }}"
+        network_control_policy: "{{ item.network_control_policy | default(omit) }}"
+        peer_redundancy_template: "{{ item.redundant_peer | default(omit) }}"
+        redundancy_type: "{{ item.redundancy_type | default(omit) }}"
+        template_type: "{{ item.template_type | default(omit) }}"
+        vlans_list: "{{ item.vlans }}"
+      loop: "{{ iscsi_template_list }}"
+      when: iscsi_template_list is defined and configure_iscsi == 'true' and ucs_state == 'present'

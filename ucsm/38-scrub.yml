@@ -1,0 +1,46 @@
+---
+################################################################################
+#
+# Title:        38-scrub.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure Scrub Policies in UCS Manager
+#
+# Variables:    scrub_list = List of Scrub policies to configure
+#               ucs_org = Name of the Sub-Oganization
+#
+# Modules:      ucs_managed_objects
+#
+# URLs:         https://galaxy.ansible.com/cisco/ucs
+#               https://developer.cisco.com/site/ucs-dev-center/
+#
+# Built-in help:
+# ansible-doc 
+#
+################################################################################
+#
+#- hosts: ucs*
+#  connection: local
+#  gather_facts: no
+#  tasks:
+
+  - name: 38 Configure Scrub Policy
+    ucs_managed_objects:
+      hostname: "{{ ucs_hostname }}"
+      username: "{{ ucs_username | default(omit) }}"
+      password: "{{ ucs_password | default('password') }}"
+      state: "{{ ucs_state | default(omit) }}"
+      objects:
+         - {
+               "module": "ucsmsdk.mometa.compute.ComputeScrubPolicy",
+               "class": "ComputeScrubPolicy",
+               "properties": {
+                   "parent_mo_or_dn": "{{ ucs_org }}",
+                   "bios_settings_scrub": "{{ item.bios_settings_scrub | default(omit) }}",
+                   "disk_scrub": "{{ item.disk_scrub | default(omit) }}",
+                   "flex_flash_scrub": "{{ item.flex_flash_scrub | default(omit) }}",
+                   "persistent_memory_scrub": "{{ item.persistent_memory_scrub | default(omit) }}",
+                   "name": "{{ item.name | default(omit) }}"
+               }
+           }
+    loop: "{{ scrub_list }}"

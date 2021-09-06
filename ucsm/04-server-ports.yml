@@ -1,0 +1,141 @@
+---
+################################################################################
+#
+# Title:        04-server-ports.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure Server ports on Fabric Interconnects
+#               There are three options:
+#               #1 Specify individual ports to configure
+#               #2 Specify a range of ports to configure
+#               #3 Enabe Auto-Discovery option in Server Port Policy
+#
+# Variables:    server_port_list = List of individual ports to configure
+#               server_port_id_start = First port id of the range or ports
+#               server_port_id_end = Last port id of the range or ports
+#               server_port_auto_discovery = Enable/Disable Port Auto-Discovery
+#
+# Modules:      ucs_managed_objects
+#
+# URLs:         https://galaxy.ansible.com/cisco/ucs
+#               https://developer.cisco.com/site/ucs-dev-center/
+#
+# Built-in help:
+# ansible-doc 
+#
+################################################################################
+#
+#- hosts: ucs*
+#  connection: local
+#  collections:
+#  - cisco.ucs
+#  gather_facts: no
+#  tasks:
+    - name: Set facts
+      set_fact:
+         login_info: &login_info
+           hostname: "{{ ucs_hostname }}"
+           username: "{{ ucs_username | default(omit) }}"
+           password: "{{ ucs_password | default('password') }}"
+           state: "{{ ucs_state | default(omit) }}"
+
+    - name: 04 Enable Server Ports on the UCS Fabric Interconnect based on server_port_list
+      ucs_managed_objects:
+        <<: *login_info
+        objects:
+          - {
+              "module": "ucsmsdk.mometa.fabric.FabricDceSwSrv",
+              "class": "FabricDceSwSrv",
+              "properties": {
+                "parent_mo_or_dn": "fabric/server",
+                "id": "{{ item.fabric_id }}"
+              },
+              "children": [
+                {
+                  "module": "ucsmsdk.mometa.fabric.FabricDceSwSrvEp",
+                  "class": "FabricDceSwSrvEp",
+                  "properties": {
+                    "port_id": "{{ item.port_id }}",
+                    "slot_id": "{{ item.slot_id }}",
+                    "admin_state": "enabled",
+                    "auto_negotiate": "yes"
+                  }
+                }
+              ]
+            }
+      loop: "{{ server_port_list }}"
+      when: server_port_list is defined and ucs_state == 'present'
+
+    - name: 04 Enable Server Ports on the UCS Fabric Interconnect based on port range
+      ucs_managed_objects:
+        <<: *login_info
+        objects:
+        - {
+              "module": "ucsmsdk.mometa.fabric.FabricDceSwSrv",
+              "class": "FabricDceSwSrv",
+              "properties": {
+                  "parent_mo_or_dn": "fabric/server",
+                  "id": "A"
+               },
+              "children": [
+                  {
+                      "module": "ucsmsdk.mometa.fabric.FabricDceSwSrvEp",
+                      "class": "FabricDceSwSrvEp",
+                      "properties": {
+                          "port_id": "{{ item }}",
+                          "slot_id": "1"
+                      }
+                  }
+              ]
+          }
+        - {
+              "module": "ucsmsdk.mometa.fabric.FabricDceSwSrv",
+              "class": "FabricDceSwSrv",
+              "properties": {
+                  "parent_mo_or_dn": "fabric/server",
+                  "id": "B"
+              },
+              "children": [
+                  {
+                      "module": "ucsmsdk.mometa.fabric.FabricDceSwSrvEp",
+                      "class": "FabricDceSwSrvEp",
+                      "properties": {
+                          "port_id": "{{ item }}",
+                          "slot_id": "1"
+                      }
+                  }
+              ]
+          }
+      with_sequence: start="{{ server_port_id_start }}" end="{{ server_port_id_end }}"
+      when: server_port_id_start is defined and ucs_state == 'present'
+
+
+    - name: 04 Set Server port Auto-Discovery to enabled
+      ucs_managed_objects:
+          <<: *login_info
+#          state: present
+          objects:
+            - {
+                "module": "ucsmsdk.mometa.compute.ComputePortDiscPolicy",
+                "class": "ComputePortDiscPolicy",
+                "properties": {
+                    "parent_mo_or_dn": "org-root",
+                    "eth_svr_auto_discovery": "enabled"
+                }
+              }
+      when: ucs_state == 'present' and server_port_auto_discovery == 'true'
+
+    - name: 04 Set Server port Auto-Discovery to disabled
+      ucs_managed_objects:
+          <<: *login_info
+          state: present
+          objects:
+            - {
+                "module": "ucsmsdk.mometa.compute.ComputePortDiscPolicy",
+                "class": "ComputePortDiscPolicy",
+                "properties": {
+                    "parent_mo_or_dn": "org-root",
+                    "eth_svr_auto_discovery": "disabled"
+                }
+              }
+      when: ucs_state == 'absent' and server_port_auto_discovery == 'true'

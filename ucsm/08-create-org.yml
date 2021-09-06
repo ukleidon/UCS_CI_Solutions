@@ -1,0 +1,37 @@
+---
+################################################################################
+#
+# Title:        08-create-org.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure Sub-Organization in UCS Manager
+#
+# Variables:    solution_org_name = Name of the Sub-Org to crate
+#               solution_org_description = Description for this Sub-Org
+#
+# Modules:      ucs_org
+#
+# URLs:         https://galaxy.ansible.com/cisco/ucs
+#               https://developer.cisco.com/site/ucs-dev-center/
+#
+# Built-in help:
+# ansible-doc cisco.ucs.ucs_org
+#
+################################################################################
+# FlexPod HANA Playbook
+#- hosts: ucs*
+#  connection: local
+#  collections:
+#  - cisco.ucs
+#  gather_facts: no
+#  tasks:
+
+    - name: 08 UCS Create New Org
+      ucs_org:
+        hostname: "{{ ucs_hostname }}"
+        username: "{{ ucs_username | default(omit) }}"
+        password: "{{ ucs_password | default('password') }}"
+        state: "{{ ucs_state | default(omit) }}"
+        org_name: "{{ solution_org_name |default(ucs_base_org_name) }}"
+        description: "{{ solution_org_description |default(ucs_base_org_description) }}"
+

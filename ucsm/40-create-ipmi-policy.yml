@@ -1,0 +1,48 @@
+---
+################################################################################
+#
+# Title:        40-create-ipmi-policy.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2021-03-31
+# Description:  Create an IPMI policy for remote power operations
+#
+# Variables:    ipmi_access_profile_name: IPMI profile name
+#               ipmi_user: User for this IPMI profile
+#               ipmi_passwird: Password for the IPMI user
+#
+# Modules:      ucs_managed_objects
+#
+# URLs:         https://galaxy.ansible.com/cisco/ucs
+#               https://developer.cisco.com/site/ucs-dev-center/
+#
+# Built-in help:
+# ansible-doc cisco.ucs.ucs_managed_objects
+#
+################################################################################
+#
+#- hosts: ucs*
+#  connection: local
+#  gather_facts: no
+#  vars:
+#    ipmi_user: "ansible"
+#    ipmi_password: "SAPhana20!"
+#  tasks:
+    - name: 40 Create IPMI policy
+      ucs_managed_objects:
+          hostname: "{{ ucs_hostname }}"
+          username: "{{ ucs_username | default(omit) }}"
+          password: "{{ ucs_password | default('password') }}"
+          objects:
+          - module: ucsmsdk.mometa.aaa.AaaEpAuthProfile
+            class: AaaEpAuthProfile
+            properties:
+              parent_mo_or_dn: "{{ ucs_org }}"
+              name: "{{ ipmi_access_profile_name }}"
+              ipmi_over_lan: "enable"
+          - module: ucsmsdk.mometa.aaa.AaaEpUser
+            class: AaaEpUser
+            properties:
+               parent_mo_or_dn: "{{ ucs_org }}/auth-profile-{{ ipmi_access_profile_name }}"
+               name: "{{ ipmi_user }}"
+               pwd: "{{ ipmi_password }}"
+               priv: "admin"

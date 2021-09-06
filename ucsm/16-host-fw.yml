@@ -1,0 +1,49 @@
+---
+################################################################################
+#
+# Title:        16-host-fw.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure Host Firmware Policy in UCS Manager
+#
+# Variables:    ucs_host_fw_name = Name of the Host Firmware Policy
+#		ucs_host_fw_descrption = Description for the Policy
+#               ucs_blade_bundle_verion = FW version for blade server
+#               ucs_rack_bundle_verion = FW version for rack server
+#
+# Modules:      ucs_ip_pool
+#
+# URLs:         https://galaxy.ansible.com/cisco/ucs
+#               https://developer.cisco.com/site/ucs-dev-center/
+#
+# Built-in help:
+# ansible-doc cisco.ucs.ucs_ip_pool
+#
+################################################################################
+#
+#- hosts: ucs*
+#  connection: local
+#  collections:
+#  - cisco.ucs
+#  gather_facts: no
+#  tasks:
+
+  - name: 16 Create Host Firmware Package Policy
+    ucs_managed_objects: 
+      hostname: "{{ ucs_hostname }}"
+      username: "{{ ucs_username | default(omit) }}"
+      password: "{{ ucs_password | default('password') }}"
+      state: "{{ ucs_state | default(omit) }}"
+      objects:      
+      - {
+           "module": "ucsmsdk.mometa.firmware.FirmwareComputeHostPack",
+           "class": "FirmwareComputeHostPack",
+           "properties": {
+              "parent_mo_or_dn": "org-root",
+              "blade_bundle_version": "{{ ucs_blade_bundle_verion }}",
+              "rack_bundle_version": "{{ ucs_rack_bundle_verion }}",
+              "name": "{{ ucs_host_fw_name }}",
+              "descr": "{{ ucs_host_fw_descrption }}"
+            }
+      }
+    when: ucs_host_fw_name is defined 

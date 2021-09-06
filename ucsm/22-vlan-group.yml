@@ -1,0 +1,222 @@
+---
+################################################################################
+#
+# Title:        22-vlan-group.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure VLAN Groups in UCS Manager
+#               VLAN groups are required to assign the traffic to one of the
+#		uplinks port channels in case disjoint L2 is used
+#
+# Variables:    vlan_group_name = Name of the VLAN Group
+#               native_vlan_name = Name of the Native VLAN
+#               vlan_list = List of VLANs to add to the group
+#               port_channel_a_name = Name of the port-channel on FI-A
+#               port_channel_a_id = ID of the port-channel on FI-A
+#               port_channel_b_name = Name of the port-channel on FI-B
+#               port_channel_b_id = ID of the port-channel on FI-B
+# 		dis_vlan_group_name = Name of the VLAN Group for Disjoint L2
+#               dis_native_vlan_name = Name of the Native VLAN for Disjoint L2
+#               dis_vlan_list = List of VLANs to add to the group for Disjoint L2
+#               dis_port_channel_a_name = Name of the port-channel on FI-A for Disjoint L2
+#               dis_port_channel_a_id = ID of the port-channel on FI-A for Disjoint L2
+#               dis_port_channel_b_name = Name of the port-channel on FI-B for Disjoint L2
+#               dis_port_channel_b_id = ID of the port-channel on FI-B for Disjoint L2
+#
+# Modules:      ucs_managed_objects
+#
+# URLs:         https://galaxy.ansible.com/cisco/ucs
+#               https://developer.cisco.com/site/ucs-dev-center/
+#
+# Built-in help:
+# ansible-doc cisco.ucs.ucs_ip_pool
+#
+################################################################################
+#
+#- hosts: ucs*
+#  connection: local
+#  collections:
+#  - cisco.ucs
+#  gather_facts: no
+#  tasks:
+    - name: Set facts
+      set_fact:
+         login_info: &login_info
+           hostname: "{{ ucs_hostname }}"
+           username: "{{ ucs_username | default(omit) }}"
+           password: "{{ ucs_password | default('password') }}"
+           state: "{{ ucs_state | default(omit) }}"
+
+    - name: 22 Configure VLAN Group if vlan_group_name is defined
+      block:
+      - name: Configure VLAN Group {{ vlan_group_name }}
+        ucs_managed_objects:
+          <<: *login_info
+          objects:
+          - {
+                "module": "ucsmsdk.mometa.fabric.FabricNetGroup",
+                "class": "FabricNetGroup",
+                "properties": {
+                    "parent_mo_or_dn": "fabric/lan",
+                    "native_net": "{{ native_vlan_name | default(omit) }}",
+                    "name": "{{ vlan_group_name }}"
+                },
+  
+                "children": [
+                    {
+                        "module": "ucsmsdk.mometa.fabric.FabricEthVlanPc",
+                        "class": "FabricEthVlanPc",
+                        "properties": {
+                            "name": "{{ port_channel_a_name }}",
+                            "switch_id": "A",
+                            "port_id": "{{ port_channel_a_id }}"
+                        }
+                    },
+                    {
+                        "module": "ucsmsdk.mometa.fabric.FabricEthVlanPc",
+                        "class": "FabricEthVlanPc",
+                        "properties": {
+                            "name": "{{ port_channel_b_name }}",
+                            "switch_id": "B",
+                            "port_id": "{{ port_channel_b_id }}"
+                        }
+                    }
+                ]
+          }
+  
+  
+      - name: 22 Add VLANs to vlan group {{ vlan_group_name }}
+        cisco.ucs.ucs_managed_objects:
+          <<: *login_info
+          objects:
+            - {
+                  "module": "ucsmsdk.mometa.fabric.FabricNetGroup",
+                  "class": "FabricNetGroup",
+                  "properties": {
+                      "parent_mo_or_dn": "fabric/lan",
+                      "native_net": "{{ native_vlan_name | default(omit) }}",
+                      "name": "{{ vlan_group_name }}",
+                  },
+    
+                  "children": [
+                      {
+                          "module": "ucsmsdk.mometa.fabric.FabricPooledVlan",
+                          "class": "FabricPooledVlan",
+                          "properties": {
+                              "name": "{{ item.name }}",
+                          }
+                      }
+                  ]
+            }
+
+        when: item.fabric is not defined or item.fabric == 'common'
+        loop: "{{ vlan_list }}"
+      when: vlan_group_name is defined and ucs_state == 'present' and configure_disjoint_l2 == 'true'
+
+
+# ------------------- Configuring Disjoint Layer 2 networking on UCS ------------------------------- #
+# 
+# configure_disjoint_l2 must be set to 'true'
+#
+    - name: 22 Configure VLAN Group if vlan_group_name is defined
+      block:
+      - name: 22 Configure VLAN Group {{ dis_vlan_group_name }}
+        ucs_managed_objects:
+          <<: *login_info
+          objects:
+          - {
+                "module": "ucsmsdk.mometa.fabric.FabricNetGroup",
+                "class": "FabricNetGroup",
+                "properties": {
+                    "parent_mo_or_dn": "fabric/lan",
+                    "native_net": "{{ dis_l2_native_vlan_name | default(omit) }}",
+                    "name": "{{ dis_vlan_group_name }}"
+                },
+  
+                "children": [
+                    {
+                        "module": "ucsmsdk.mometa.fabric.FabricEthVlanPc",
+                        "class": "FabricEthVlanPc",
+                        "properties": {
+                            "name": "{{ dis_port_channel_a_name }}",
+                            "switch_id": "A",
+                            "port_id": "{{ dis_port_channel_a_id }}"
+                        }
+                    },
+                    {
+                        "module": "ucsmsdk.mometa.fabric.FabricEthVlanPc",
+                        "class": "FabricEthVlanPc",
+                        "properties": {
+                            "name": "{{ dis_port_channel_b_name }}",
+                            "switch_id": "B",
+                            "port_id": "{{ dis_port_channel_b_id }}"
+                        }
+                    }
+                ]
+          }
+  
+  
+      - name: 22 Add VLANs to vlan group {{ dis_vlan_group_name }}
+        cisco.ucs.ucs_managed_objects:
+          <<: *login_info
+          objects:
+            - {
+                  "module": "ucsmsdk.mometa.fabric.FabricNetGroup",
+                  "class": "FabricNetGroup",
+                  "properties": {
+                      "parent_mo_or_dn": "fabric/lan",
+                      "native_net": "{{ dis_l2_native_vlan_name | default(omit) }}",
+                      "name": "{{ dis_vlan_group_name }}",
+                  },
+    
+                  "children": [
+                      {
+                          "module": "ucsmsdk.mometa.fabric.FabricPooledVlan",
+                          "class": "FabricPooledVlan",
+                          "properties": {
+                              "name": "{{ item.name }}",
+                          }
+                      }
+                  ]
+            }
+        when: item.fabric is not defined or item.fabric == 'common'
+        loop: "{{ dis_vlan_list }}"
+      when: dis_vlan_group_name is defined and ucs_state == 'present' and configure_disjoint_l2 == 'true'
+
+# ---------------- Delete VLAN Group  ------------------------------- #
+
+    - name: 22 Delete VLAN Group for default traffic
+      ucs_managed_objects:
+        <<: *login_info
+        objects:
+        - {
+              "module": "ucsmsdk.mometa.fabric.FabricNetGroup",
+              "class": "FabricNetGroup",
+              "properties": {
+                  "parent_mo_or_dn": "fabric/lan",
+                  "native_net": "",
+                  "name": "{{ vlan_group_name }}"
+              }
+        }
+      when: vlan_group_name is defined and ucs_state == 'absent'
+
+
+# ---------------- Configuring Disjoint Layer 2 networking on UCS ------------------------------- #
+# 
+# configure_disjoint_l2 must be set to 'true'
+#
+
+    - name: 22 Delete VLAN Group for Disjoint L2
+      ucs_managed_objects:
+        <<: *login_info
+        objects:
+        - {
+              "module": "ucsmsdk.mometa.fabric.FabricNetGroup",
+              "class": "FabricNetGroup",
+              "properties": {
+                  "parent_mo_or_dn": "fabric/lan",
+                  "native_net": "",
+                  "name": "{{ dis_vlan_group_name }}"
+              }
+        }
+      when: dis_vlan_group_name is defined and configure_disjoint_l2 == 'true' and ucs_state == 'absent'

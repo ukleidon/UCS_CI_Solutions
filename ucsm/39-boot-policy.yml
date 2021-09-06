@@ -1,0 +1,448 @@
+---
+################################################################################
+#
+# Title:        39-boot-policy.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure Boot Policy in UCS Manager
+#
+# Variables:    iscsi_boot_policy_name = Name of the Boot Policy for iSCSI boot
+#		fc_boot_policy_name = Name of the Boot Policy for FC boot
+#		local_boot_policy_name = Name of the Boot Policy for local disk boot
+#		vd0_boot_policy_name = Name of the Boot Policy for Virtual Disk boot
+#               ucs_org = Name of the Sub-Oganization
+#		boot_mode = Boot mode to use (legacy or uefi)
+#		enforce_vnic_name = 
+#		reboot_on_update = Enforce reboot on boot-policy updates
+#		secure_boot = UEFI Secure Boot enabled or disabled
+#		iscsi_template_list[0].name = Name of iSCSI Adapter 0
+#		iscsi_template_list[1].name = Name of iSCSI Adapter 1
+#		boot_loader_path = UEFI boot loader path
+#		boot_loader_name = UEFI boot loader name
+#		san_policy_vhba_a_name = Name of vHBA policy on FI-A
+#		san_policy_vhba_b_name = Name of vHBA policy on FI-B
+#		storage_node1_a = WWNN of storage node 1 fabric A
+#		storage_node1_b = WWNN of storage node 1 fabric B
+#		storage_node2_a = WWNN of storage node 2 fabric A
+#		storage_node2_b = WWNN of storage node 2 fabric B
+#		vd0_name = Name of the Virtual Drive 
+#
+# Modules:      ucs_managed_objects
+#
+# URLs:         https://galaxy.ansible.com/cisco/ucs
+#               https://developer.cisco.com/site/ucs-dev-center/
+#
+# Built-in help:
+# ansible-doc 
+#
+################################################################################
+#
+#- hosts: ucs*
+#  connection: local
+#  gather_facts: no
+#  tasks:
+  - name: Set facts
+    set_fact:
+       login_info: &login_info
+         hostname: "{{ ucs_hostname }}"
+         username: "{{ ucs_username | default(omit) }}"
+         password: "{{ ucs_password | default('password') }}"
+         state: "{{ ucs_state | default(omit) }}"
+
+  - name: 39 Configure iSCSI Boot Policy
+    ucs_managed_objects: 
+      <<: *login_info
+      objects:
+      - {
+        "module": "ucsmsdk.mometa.lsboot.LsbootPolicy",
+        "class": "LsbootPolicy",
+        "properties": {
+            "parent_mo_or_dn": "{{ ucs_org }}",
+            "boot_mode": "{{ boot_mode | default(omit) }}",
+            "enforce_vnic_name": "{{ enforce_vnic_name | default(omit) }}",
+            "name": "{{ iscsi_boot_policy_name }}",
+            "reboot_on_update": "{{ reboot_on_update | default(omit) }}"
+        },
+        "children": [
+            {
+              "module": "ucsmsdk.mometa.lsboot.LsbootBootSecurity",
+              "class": "LsbootBootSecurity",
+              "properties": {
+                  "secure_boot": "{{ secure_boot | default(omit) }}"
+              }
+            },
+            {
+                "module": "ucsmsdk.mometa.lsboot.LsbootVirtualMedia",
+                "class": "LsbootVirtualMedia",
+                "properties": {
+                    "access": "read-only",
+                    "lun_id": "0",
+                    "order": "1"
+                }
+            },
+            {
+                 "module": "ucsmsdk.mometa.lsboot.LsbootVirtualMedia",
+                 "class": "LsbootVirtualMedia",
+                 "properties": {
+                     "access": "read-only-remote-cimc",
+                     "lun_id": "0",
+                     "order": "3"
+                 }
+            },
+            {
+                "module": "ucsmsdk.mometa.lsboot.LsbootIScsi",
+                "class": "LsbootIScsi",
+                "properties": {
+                    "order": "2"
+                },
+                "children": [
+                    {
+                        "module": "ucsmsdk.mometa.lsboot.LsbootIScsiImagePath",
+                        "class": "LsbootIScsiImagePath",
+                        "properties": {
+                          "i_scsi_vnic_name": "{{ iscsi_template_list[0].name }}",
+                          "type": "primary"
+                        },
+                        "children": [
+                              {
+                                "module": "ucsmsdk.mometa.lsboot.LsbootUEFIBootParam",
+                                "class": "LsbootUEFIBootParam",
+                                "properties": {
+                                  "boot_loader_path": "{{ boot_loader_path | default(omit) }}",
+                                  "boot_loader_name": "{{ boot_loader_name | default(omit) }}"
+                                },
+                              },
+                         ],
+                    },
+                    {
+                        "module": "ucsmsdk.mometa.lsboot.LsbootIScsiImagePath",
+                        "class": "LsbootIScsiImagePath",
+                        "properties": {
+                          "i_scsi_vnic_name": "{{ iscsi_template_list[1].name }}",
+                          "type": "secondary"
+                        },
+                        "children": [
+                              {
+                                "module": "ucsmsdk.mometa.lsboot.LsbootUEFIBootParam",
+                                "class": "LsbootUEFIBootParam",
+                                "properties": {
+                                  "boot_loader_path": "{{ boot_loader_path | default(omit) }}",
+                                  "boot_loader_name": "{{ boot_loader_name | default(omit) }}"
+                                },
+                              },
+                            ],
+                    }
+                  ]
+              }
+        ]
+      }
+    when: iscsi_boot_policy_name is defined and configure_iscsi == 'true'
+
+  - name: Configure FC Boot Policy
+    ucs_managed_objects: 
+      <<: *login_info
+      objects:
+      - {
+        "module": "ucsmsdk.mometa.lsboot.LsbootPolicy",
+        "class": "LsbootPolicy",
+        "properties": {
+            "parent_mo_or_dn": "{{ ucs_org }}",
+            "boot_mode": "{{ boot_mode | default(omit) }}",
+            "enforce_vnic_name": "{{ enforce_vnic_name | default(omit) }}",
+            "name": "{{ fc_boot_policy_name }}",
+            "reboot_on_update": "{{ reboot_on_update | default(omit) }}"
+        },
+        "children": [
+            {
+              "module": "ucsmsdk.mometa.lsboot.LsbootBootSecurity",
+              "class": "LsbootBootSecurity",
+              "properties": {
+                  "secure_boot": "{{ secure_boot | default(omit) }}"
+              }
+            },
+            {
+                "module": "ucsmsdk.mometa.lsboot.LsbootVirtualMedia",
+                "class": "LsbootVirtualMedia",
+                "properties": {
+                    "access": "read-only",
+                    "lun_id": "0",
+                    "order": "1"
+                }
+            },
+            {
+                 "module": "ucsmsdk.mometa.lsboot.LsbootVirtualMedia",
+                 "class": "LsbootVirtualMedia",
+                 "properties": {
+                     "access": "read-only-remote-cimc",
+                     "lun_id": "0",
+                     "order": "3"
+                 }
+             },
+
+                {
+                  "module": "ucsmsdk.mometa.lsboot.LsbootSan",
+                  "class": "LsbootSan",
+                  "properties": {
+                      "order": "2"
+                  },
+                  "children": [
+                      {
+                          "module": "ucsmsdk.mometa.lsboot.LsbootSanCatSanImage",
+                          "class": "LsbootSanCatSanImage",
+                          "properties": {
+                            "vnic_name": "{{ san_policy_vhba_a_name }}",
+                            "type": "primary"
+                          },
+                          "children": [
+                              {
+                                "module": "ucsmsdk.mometa.lsboot.LsbootSanCatSanImagePath",
+                                "class": "LsbootSanCatSanImagePath",
+                                "properties": {
+                                  "wwn": "{{ storage_node1_a }}",
+                                  "type": "primary"
+                                },
+                                "children": [
+                                  {
+                                    "module": "ucsmsdk.mometa.lsboot.LsbootUEFIBootParam",
+                                    "class": "LsbootUEFIBootParam",
+                                    "properties": {
+                                      "boot_loader_path": "{{ boot_loader_path | default(omit) }}",
+                                      "boot_loader_name": "{{ boot_loader_name | default(omit) }}"
+                                    },
+                                  },
+                                ],
+                              },
+                              {
+                                "module": "ucsmsdk.mometa.lsboot.LsbootSanCatSanImagePath",
+                                "class": "LsbootSanCatSanImagePath",
+                                "properties": {
+                                  "wwn": "{{ storage_node2_a }}",
+                                  "type": "secondary"
+                                },
+                                "children": [
+                                  {
+                                    "module": "ucsmsdk.mometa.lsboot.LsbootUEFIBootParam",
+                                    "class": "LsbootUEFIBootParam",
+                                    "properties": {
+                                      "boot_loader_path": "{{ boot_loader_path | default(omit) }}",
+                                      "boot_loader_name": "{{ boot_loader_name | default(omit) }}"
+                                    },
+                                  },
+                                ],
+                              },
+                          ]
+                      },
+                      {
+                          "module": "ucsmsdk.mometa.lsboot.LsbootSanCatSanImage",
+                          "class": "LsbootSanCatSanImage",
+                          "properties": {
+                            "vnic_name": "{{ san_policy_vhba_b_name }}",
+                            "type": "secondary"
+                          },
+                          "children": [
+                              {
+                                "module": "ucsmsdk.mometa.lsboot.LsbootSanCatSanImagePath",
+                                "class": "LsbootSanCatSanImagePath",
+                                "properties": {
+                                  "wwn": "{{ storage_node1_b }}",
+                                  "type": "primary"
+                                },
+                                "children": [
+                                  {
+                                    "module": "ucsmsdk.mometa.lsboot.LsbootUEFIBootParam",
+                                    "class": "LsbootUEFIBootParam",
+                                    "properties": {
+                                      "boot_loader_path": "{{ boot_loader_path | default(omit) }}",
+                                      "boot_loader_name": "{{ boot_loader_name | default(omit) }}"
+                                    },
+                                  },
+                                ],
+                              },
+                              {
+                                "module": "ucsmsdk.mometa.lsboot.LsbootSanCatSanImagePath",
+                                "class": "LsbootSanCatSanImagePath",
+                                "properties": {
+                                  "wwn": "{{ storage_node2_b }}",
+                                  "type": "secondary"
+                                },
+                                "children": [
+                                  {
+                                    "module": "ucsmsdk.mometa.lsboot.LsbootUEFIBootParam",
+                                    "class": "LsbootUEFIBootParam",
+                                    "properties": {
+                                      "boot_loader_path": "{{ boot_loader_path | default(omit) }}",
+                                      "boot_loader_name": "{{ boot_loader_name | default(omit) }}"
+                                    },
+                                  },
+                                ],
+                              },
+                          ]
+                      }
+                    ]
+                 }
+        ]
+      }
+    when: fc_boot_policy_name is defined and configure_fc == 'true'
+
+
+  - name: Configure Virtual Drive (VD0) Boot Policy
+    ucs_managed_objects: 
+      <<: *login_info
+      objects:
+      - {
+        "module": "ucsmsdk.mometa.lsboot.LsbootPolicy",
+        "class": "LsbootPolicy",
+        "properties": {
+            "parent_mo_or_dn": "{{ ucs_org }}",
+            "boot_mode": "{{ boot_mode | default(omit) }}",
+            "enforce_vnic_name": "{{ enforce_vnic_name | default(omit) }}",
+            "reboot_on_update": "{{ reboot_on_update }}",
+            "name": "{{ vd0_boot_policy_name }}"
+        },
+        "children": [
+            {
+                "module": "ucsmsdk.mometa.lsboot.LsbootVirtualMedia",
+                "class": "LsbootVirtualMedia",
+                "properties": {
+                    "access": "read-only",
+                    "lun_id": "0",
+                    "order": "1"
+                }
+            },
+            {
+              "module": "ucsmsdk.mometa.lsboot.LsbootBootSecurity",
+              "class": "LsbootBootSecurity",
+              "properties": {
+                  "secure_boot": "{{ secure_boot | default(omit) }}"
+              }
+            },
+            {
+                 "module": "ucsmsdk.mometa.lsboot.LsbootVirtualMedia",
+                 "class": "LsbootVirtualMedia",
+                 "properties": {
+                     "access": "read-only-remote-cimc",
+                     "lun_id": "0",
+                     "order": "3"
+                 }
+            },
+            {
+                "module": "ucsmsdk.mometa.lsboot.LsbootStorage",
+                "class": "LsbootStorage",
+                "properties": {
+                },
+                "children": [
+                    {
+                        "module": "ucsmsdk.mometa.lsboot.LsbootLocalStorage",
+                        "class": "LsbootLocalStorage",
+                        "properties": {},
+                        "children": [
+                            {
+                                "module": "ucsmsdk.mometa.lsboot.LsbootLocalHddImage",
+                                "class": "LsbootLocalHddImage",
+                                "properties": {
+                                     "order": "2"
+                                },
+                                "children": [
+                                    {
+                                        "module": "ucsmsdk.mometa.lsboot.LsbootLocalLunImagePath",
+                                        "class": "LsbootLocalLunImagePath",
+                                        "properties": {
+                                            "lun_name": "{{ vd0_name | default(omit) }}",
+                                            "type": "primary",
+                                        },
+                                        "children": [
+                                              {
+                                                "module": "ucsmsdk.mometa.lsboot.LsbootUEFIBootParam",
+                                                "class": "LsbootUEFIBootParam",
+                                                "properties": {
+                                                  "boot_loader_path": "{{ boot_loader_path | default(omit) }}",
+                                                  "boot_loader_name": "{{ boot_loader_name | default(omit) }}"
+                                                },
+                                              },
+                                         ],
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+      }
+    when: vd0_boot_policy_name is defined
+
+  - name: Configure Local Boot Policy
+    ucs_managed_objects: 
+      <<: *login_info
+      objects:
+      - {
+        "module": "ucsmsdk.mometa.lsboot.LsbootPolicy",
+        "class": "LsbootPolicy",
+        "properties": {
+            "parent_mo_or_dn": "{{ ucs_org }}",
+            "boot_mode": "{{ boot_mode | default(omit) }}",
+            "enforce_vnic_name": "{{ enforce_vnic_name | default(omit) }}",
+#            "secure_boot": "{{ secure_boot | default(omit) }}",
+            "name": "{{ local_boot_policy_name }}",
+            "reboot_on_update": "{{ reboot_on_update }}"
+        },
+        "children": [
+            {
+                "module": "ucsmsdk.mometa.lsboot.LsbootVirtualMedia",
+                "class": "LsbootVirtualMedia",
+                "properties": {
+                    "access": "read-only",
+                    "lun_id": "0",
+                    "order": "1"
+                }
+            },
+            {
+              "module": "ucsmsdk.mometa.lsboot.LsbootBootSecurity",
+              "class": "LsbootBootSecurity",
+              "properties": {
+                  "secure_boot": "{{ secure_boot | default(omit) }}"
+              }
+            },
+            {
+                 "module": "ucsmsdk.mometa.lsboot.LsbootVirtualMedia",
+                 "class": "LsbootVirtualMedia",
+                 "properties": {
+                     "access": "read-only-remote-cimc",
+                     "lun_id": "0",
+                     "order": "3"
+                 }
+            },
+            {
+                "module": "ucsmsdk.mometa.lsboot.LsbootStorage",
+                "class": "LsbootStorage",
+                "properties": {},
+                "children": [
+                    {
+                        "module": "ucsmsdk.mometa.lsboot.LsbootLocalStorage",
+                        "class": "LsbootLocalStorage",
+                        "properties": {},
+                        "children": [
+                            {
+                                "module": "ucsmsdk.mometa.lsboot.LsbootDefaultLocalImage",
+                                "class": "LsbootDefaultLocalImage",
+                                "properties": {
+                                    "order": "2"
+                                },
+                                "children": [
+                                      {
+                                        "module": "ucsmsdk.mometa.lsboot.LsbootUEFIBootParam",
+                                        "class": "LsbootUEFIBootParam",
+                                        "properties": {
+                                          "boot_loader_path": "{{ boot_loader_path | default(omit) }}",
+                                          "boot_loader_name": "{{ boot_loader_name | default(omit) }}"
+                                        },
+                                      },
+                                 ],
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+      }
+    when: local_boot_policy_name is defined

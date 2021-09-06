@@ -1,0 +1,41 @@
+---
+################################################################################
+#
+# Title:        30-storage-profile.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure Storage Profile in UCS Manager
+#
+# Variables:    lun_list = List of LUNs / Stoage Profiles to configure
+#               ucs_org = Name of the Sub-Oganization
+#
+# Modules:      ucs_storage_profile
+#
+# URLs:         https://galaxy.ansible.com/cisco/ucs
+#               https://developer.cisco.com/site/ucs-dev-center/
+#
+# Built-in help:
+# ansible-doc cisco.ucs.ucs_storage_profile
+#
+################################################################################
+#
+#- hosts: ucs*
+#  connection: local
+#  collections:
+#  - cisco.ucs
+#  gather_facts: no
+#  tasks:
+
+  - name: 29 Configure Storage Profile
+    ucs_storage_profile: 
+      hostname: "{{ ucs_hostname }}"
+      username: "{{ ucs_username | default(omit) }}"
+      password: "{{ ucs_password | default('password') }}"
+      state: "{{ ucs_state | default(omit) }}"
+      org_dn: "{{ ucs_org }}"
+      name: "{{ item.name }}"
+      local_luns: "{{ item.local_luns }}"
+      description: "{{ item.description | default(omit) }}"
+    loop: "{{ lun_list }}"
+    when: lun_list is defined
+

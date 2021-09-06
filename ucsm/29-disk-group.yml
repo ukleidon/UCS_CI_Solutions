@@ -1,0 +1,54 @@
+---
+################################################################################
+#
+# Title:        29-disk-group.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure Disk Group in UCS Manager
+#
+# Variables:    disk_group_list = List of disk groups to configure
+#               ucs_org = Name of the Sub-Oganization
+#
+# Modules:      ucs_disk_group_policy
+#
+# URLs:         https://galaxy.ansible.com/cisco/ucs
+#               https://developer.cisco.com/site/ucs-dev-center/
+#
+# Built-in help:
+# ansible-doc cisco.ucs.ucs_disk_group_policy
+#
+################################################################################
+#
+#- hosts: ucs*
+#  connection: local
+#  collections:
+#  - cisco.ucs
+#  gather_facts: no
+#  tasks:
+
+  - name: 29 Configure Disk Groups
+    ucs_disk_group_policy: 
+      hostname: "{{ ucs_hostname }}"
+      username: "{{ ucs_username | default(omit) }}"
+      password: "{{ ucs_password | default('password') }}"
+      state: "{{ ucs_state | default(omit) }}"
+      name: "{{ item.name }}"
+      org_dn: "{{ ucs_org }}"
+      raid_level: "{{ item.raid_level }}"
+      description: "{{ item.description | default(omit) }}"
+      configuration_mode: "{{ item.configuration_mode | default(omit) }}"
+      drive_type: "{{ item.drive_type | default(omit) }}"
+      min_drive_size: "{{ item.min_drive_size | default(omit) }}"
+      num_drives: "{{ item.num_drives | default(omit) }}"
+      num_glob_hot_spares: "{{ item.num_glob_hot_spares | default(omit) }}"
+      manual_disks: "{{ item.manual_disks | default(omit) }}"
+      virtual_drive:
+        access_policy: "{{ item.access_policy | default(omit) }}"
+        drive_cache: "{{ item.drive_cache | default(omit) }}"
+        io_policy: "{{ item.io_policy | default(omit) }}"
+        read_policy: "{{ item.read_policy | default(omit) }}"
+        strip_size: "{{ item.strip_size | default(omit) }}"
+        write_cache_policy: "{{ item.write_cache_policy | default(omit) }}"
+    loop: "{{ disk_group_list }}"
+    when: disk_group_list is defined
+

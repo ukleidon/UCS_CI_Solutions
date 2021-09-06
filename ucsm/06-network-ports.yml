@@ -1,0 +1,198 @@
+---
+################################################################################
+#
+# Title:        06-network-ports.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure Uplink ports to the switches and add them to an
+#		Port-Channel. Optinal configuration of an second Port-channel
+#		for systems with disjoint Layer 2 network requirements
+#
+# Variables:    port_channel_list = List of ports and name of Port-Channel
+#               dis_port_channel_list = List of ports and name of Port-Channel for 
+#					Disjoint L2
+#		configure_disjoint_l2 = Must be "true" to enable configuraton of
+#					disjoint L2
+#
+# Modules:      ucs_managed_objects
+#
+# URLs:         https://galaxy.ansible.com/cisco/ucs
+#               https://developer.cisco.com/site/ucs-dev-center/
+#
+# Built-in help:
+# ansible-doc 
+#
+################################################################################
+#
+#- hosts: ucs*
+#  connection: local
+#  collections:
+#  - cisco.ucs
+#  gather_facts: no
+#  tasks:
+    - name: Set facts
+      set_fact:
+         login_info: &login_info
+           hostname: "{{ ucs_hostname }}"
+           username: "{{ ucs_username | default(omit) }}"
+           password: "{{ ucs_password | default('password') }}"
+           state: "{{ ucs_state | default(omit) }}"
+
+    - name: 06 Enable Uplink Ports on the UCS Fabric Interconnect
+      ucs_managed_objects:
+        <<: *login_info
+        objects:
+
+          - {
+              "module": "ucsmsdk.mometa.fabric.FabricEthLan",
+              "class": "FabricEthLan",
+              "properties": {
+                "parent_mo_or_dn": "fabric/lan",
+                "id": "{{ item.fabric_id }}"
+              },
+              "children": [
+                {
+                  "module": "ucsmsdk.mometa.fabric.FabricEthLanEp",
+                  "class": "FabricEthLanEp",
+                  "properties": {
+                    "port_id": "{{ item.port_id }}",
+                    "slot_id": "{{ item.slot_id }}",
+                    "admin_state": "enabled",
+                    "auto_negotiate": "yes"
+                  }
+                }
+              ]
+            }
+          - {
+              "module": "ucsmsdk.mometa.fabric.FabricEthLanPc",
+              "class": "FabricEthLanPc",
+              "properties": {
+                "parent_mo_or_dn": "fabric/lan/{{ item.fabric_id }}",
+                "name": "{{ item.name }}",
+                "port_id": "{{ item.pc_id }}",
+                "admin_speed": "{{ admin_speed }}"
+              },
+              "children": [
+                {
+                  "module": "ucsmsdk.mometa.fabric.FabricEthLanPcEp",
+                  "class": "FabricEthLanPcEp",
+                  "properties": {
+                    "slot_id": "{{ item.slot_id }}",
+                    "port_id": "{{ item.port_id }}"
+                  }
+                }
+              ]
+            }
+
+
+
+      with_list: "{{ port_channel_list }}"
+      when: port_channel_list is defined and ucs_state == 'present'
+
+# ------------------- Configuring Disjoint Layer 2 networking on UCS ------------------------------- #
+# 
+# configure_disjoint_l2 must be set to 'true'
+#
+
+    - name: 06 Enable Uplink Ports on the UCS Fabric Interconnect for Disjoint L2
+      block:
+      - name: 06 Enable Uplink Ports on the UCS Fabric Interconnect for Disjoint L2
+        ucs_managed_objects:
+          <<: *login_info
+          objects:
+            - {
+                "module": "ucsmsdk.mometa.fabric.FabricEthLan",
+                "class": "FabricEthLan",
+                "properties": {
+                  "parent_mo_or_dn": "fabric/lan",
+                  "id": "{{ item.fabric_id }}"
+                },
+                "children": [
+                  {
+                    "module": "ucsmsdk.mometa.fabric.FabricEthLanEp",
+                    "class": "FabricEthLanEp",
+                    "properties": {
+                      "port_id": "{{ item.port_id }}",
+                      "slot_id": "{{ item.slot_id }}",
+                      "admin_state": "enabled",
+                      "auto_negotiate": "yes"
+                    }
+                  }
+                ]
+              }
+            - {
+                "module": "ucsmsdk.mometa.fabric.FabricEthLanPc",
+                "class": "FabricEthLanPc",
+                "properties": {
+                  "parent_mo_or_dn": "fabric/lan/{{ item.fabric_id }}",
+                  "name": "{{ item.name }}",
+                  "port_id": "{{ item.pc_id }}",
+                  "admin_speed": "{{ dis_admin_speed }}"
+                },
+                "children": [
+                  {
+                    "module": "ucsmsdk.mometa.fabric.FabricEthLanPcEp",
+                    "class": "FabricEthLanPcEp",
+                    "properties": {
+                      "slot_id": "{{ item.slot_id }}",
+                      "port_id": "{{ item.port_id }}"
+                    }
+                  }
+                ]
+              }
+
+#        register: port_channel 
+  #      no_log: 'true'
+        with_list: "{{ dis_port_channel_list }}"
+      when: dis_port_channel_list is defined and configure_disjoint_l2 == 'true' and ucs_state == 'present'
+
+####
+#-------------------- Delete Port Channel ------
+#
+
+    - name: 06 Delete Port Channel
+      ucs_managed_objects:
+        <<: *login_info
+        objects:
+          - {
+              "module": "ucsmsdk.mometa.fabric.FabricEthLanPc",
+              "class": "FabricEthLanPc",
+              "properties": {
+                "parent_mo_or_dn": "fabric/lan/{{ item.fabric_id }}",
+                "name": "{{ item.name }}",
+                "port_id": "{{ item.pc_id }}",
+              }
+            }
+
+
+
+      with_list: "{{ port_channel_list }}"
+      when: port_channel_list is defined and ucs_state == 'absent'
+
+# ------------------- Delete Disjoint Layer 2 networking on UCS ------------------------------- #
+# 
+# configure_disjoint_l2 must be set to 'true'
+#
+
+    - name: 06 Disable Uplink Ports on the UCS Fabric Interconnect for Disjoint L2
+      block:
+      - name: 06 Disable Uplink Ports on the UCS Fabric Interconnect for Disjoint L2
+        ucs_managed_objects:
+          <<: *login_info
+          objects:
+            - {
+                "module": "ucsmsdk.mometa.fabric.FabricEthLanPc",
+                "class": "FabricEthLanPc",
+                "properties": {
+                  "parent_mo_or_dn": "fabric/lan/{{ item.fabric_id }}",
+                  "name": "{{ item.name }}",
+                  "port_id": "{{ item.pc_id }}",
+                }
+              }
+
+#        register: port_channel 
+  #      no_log: 'true'
+        with_list: "{{ dis_port_channel_list }}"
+      when: dis_port_channel_list is defined and configure_disjoint_l2 == 'true' and ucs_state == 'absent'
+
+

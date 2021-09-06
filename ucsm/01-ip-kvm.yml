@@ -1,0 +1,66 @@
+---
+################################################################################
+#
+# Title:        01-ip-kvm.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure Management IP Pool in UCS Manager
+#               with Ansible modules.
+#               Management IP Pool should be always configured in org-root
+#		The pool "ext-mgmt" is required and deletion of this pool will fail.
+#
+# Variables:    mgmt_pool_name = Name of the Management IP pool
+#               mgmt_first_ip = First IP address in the IP pool
+#               mgmt_last_ip = Last IP address in the IP pool
+#               mgmt_subnet_mask = Netmask for the IP pool
+#               mgmt_default_gw = Default Gateway ip address for the IP pool
+#               dns_servers[0].name = Primary DNS server ip for the IP pool
+#
+# Modules:      ucs_ip_pool
+#
+# URLs:         https://galaxy.ansible.com/cisco/ucs
+#               https://developer.cisco.com/site/ucs-dev-center/
+#
+# Built-in help:
+# ansible-doc cisco.ucs.ucs_ip_pool
+#
+################################################################################
+#
+#
+#- hosts: ucs*
+#  connection: local
+#  gather_facts: no
+#  tasks:
+    - name: Set facts
+      set_fact:
+         login_info: &login_info
+           hostname: "{{ ucs_hostname }}"
+           username: "{{ ucs_username | default(omit) }}"
+           password: "{{ ucs_password | default('password') }}"
+           state: "{{ ucs_state | default(omit) }}"
+  
+    - name: 01 Configure Management IP Address Pool
+      ucs_ip_pool:
+        <<: *login_info
+        name: "{{ mgmt_pool_name }}"
+        order: sequential
+        org_dn: "org-root"
+        first_addr: "{{ mgmt_first_ip }}"
+        last_addr: "{{ mgmt_last_ip }}"
+        subnet_mask: "{{ mgmt_subnet_mask }}"
+        default_gw: "{{ mgmt_default_gw }}"
+        primary_dns: "{{ dns_servers[0].name }}"
+      when: mgmt_pool_name is defined and ucs_state == 'present'
+
+    - name: 01 Delete Management IP Address Pool
+      ucs_ip_pool:
+        <<: *login_info
+        name: "{{ mgmt_pool_name }}"
+        order: sequential
+        org_dn: "org-root"
+        first_addr: "{{ mgmt_first_ip }}"
+        last_addr: "{{ mgmt_last_ip }}"
+        subnet_mask: "{{ mgmt_subnet_mask }}"
+        default_gw: "{{ mgmt_default_gw }}"
+        primary_dns: "{{ dns_servers[0].name }}"
+      when: mgmt_pool_name != 'ext-mgmt' and ucs_state == 'absent'

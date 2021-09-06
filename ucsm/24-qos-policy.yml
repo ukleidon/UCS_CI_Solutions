@@ -1,0 +1,59 @@
+---
+################################################################################
+#
+# Title:        24-qos-policy.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2020-03-31
+# Description:  Configure QoS Policies in UCS Manager
+#               This is only required in case QoS system classes are configured
+#		or bandwidth limitations is to use for network traffic
+#
+# Variables:    qos_policy_list = List of QoS policies to create
+#
+# Modules:      ucs_managed_objects
+#
+# URLs:         https://galaxy.ansible.com/cisco/ucs
+#               https://developer.cisco.com/site/ucs-dev-center/
+#
+# Built-in help:
+# ansible-doc 
+#
+################################################################################
+#
+#- hosts: ucs*
+#  connection: local
+#  collections:
+#  - cisco.ucs
+#  gather_facts: no
+#  tasks:
+
+  - name: 24 Create QoS Policy
+    ucs_managed_objects: 
+      hostname: "{{ ucs_hostname }}"
+      username: "{{ ucs_username | default(omit) }}"
+      password: "{{ ucs_password | default('password') }}"
+      state: "{{ ucs_state | default(omit) }}"
+      objects:      
+        - {
+            "module": "ucsmsdk.mometa.epqos.EpqosDefinition",
+            "class": "EpqosDefinition",
+            "properties": {
+                "parent_mo_or_dn": "{{ ucs_org }}",
+                "name": "{{ item.name }}"
+            },
+            "children": [
+                {
+                    "module": "ucsmsdk.mometa.epqos.EpqosEgress",
+                    "class": "EpqosEgress",
+                    "properties": {
+                        "prio": "{{ item.prio }}",
+                        "rate": "{{ item.rate }}",
+                        "host_control": "{{ item.host_control }}",
+                        "burst": "{{ item.burst }}"
+                    }
+                }
+            ]
+          }   
+    loop: "{{ qos_policy_list }}"
+    when: qos_policy_list is defined
+
