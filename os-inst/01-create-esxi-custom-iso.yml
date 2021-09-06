@@ -1,0 +1,186 @@
+---
+################################################################################
+#
+# Title:        01-create-esxi-custom-iso.yml
+# Author:       Haseeb Niazi, Shailendra Mruthunjaya, Ulrich Kleidon
+# Date:         2021-07-31
+# Description:  Configure Kickstart and ISO for unattended installation of 
+#               Vmware ESXi
+#
+# Variables:    
+#
+# Modules:      file, lineinfile, shell
+#
+# URLs:         
+#               
+#
+# Built-in help:
+# ansible-doc 
+#
+################################################################################
+#- hosts: esx*
+#  connection: local
+#  gather_facts: no
+#  tasks:
+    - name: 00 Clean up old temp files before starting UA proccess
+      file:
+        path: "{{ ua_tmp_vmedia_list_file }}"
+        state: absent
+      when: state == "present"
+
+    - name: 00 Creating var-file . . .
+      file:
+        path: "{{ ua_tmp_vmedia_list_file }}"
+        state: touch
+      when: state == "present"
+
+    - name: 00 Adding header into var-file . . .
+      lineinfile:
+          path: "{{ ua_tmp_vmedia_list_file }}"
+          line: "vmedia_list_ua: "
+      when: state == "present"
+
+    - name: 00 Creating kickstart file with proper automation contents . . .
+      file:
+        path: /{{ ua_local_mp }}/{{ esxi_hostname }}.cfg
+        state: touch
+      when: state == "present"
+
+    - name: 01 Adding content to kickstart file with proper automation contents . . .
+      lineinfile:
+          path: /{{ ua_local_mp }}/{{ esxi_hostname }}.cfg
+          line: "vmaccepteula \n
+                clearpart --firstdisk --overwritevmfs \n
+                install --firstdisk --overwritevmfs \n
+                rootpw --iscrypted {{ encrypted_root_password }} \n
+                keyboard German \n
+                #network --bootproto=static --vlanid={{ oob_vlan_id }} --device=vmnic0 --ip={{ mgmt_ip }} --netmask={{ mgmt_subnet_mask }} --gateway={{ oob_vlan_gw }} --hostname={{ esxi_hostname.split('.')[0] }} --nameserver={{ dns_servers[0].name }} \n
+                network --bootproto=static --device=vmnic0 --ip={{ mgmt_ip }} --netmask={{ mgmt_subnet_mask }} --gateway={{ oob_vlan_gw }} --hostname={{ esxi_hostname.split('.')[0] }} --nameserver={{ dns_servers[0].name }} \n
+                reboot \n
+                ### \n
+                #Firstboot section 1 \n
+                %firstboot --interpreter=busybox \n
+                sleep 10 \n
+                esxcli system hostname set --fqdn=esx01.pod6.wdf02-4-dmz.local \n
+                esxcli network ip dns search add --domain={{ dns_domain }} \n
+                esxcli network ip dns server add --server={{ dns_servers[0].name }} \n
+                esxcli network ip dns server add --server={{ dns_servers[1].name }} \n
+                sleep 30 \n
+                #Enter Maintenance mode \n
+                vim-cmd hostsvc/maintenance_mode_enter \n
+                #enable & start remote ESXi Shell (SSH) \n
+                vim-cmd hostsvc/enable_ssh \n
+                vim-cmd hostsvc/start_ssh \n
+                #enable & start ESXi Shell (TSM) \n
+                vim-cmd hostsvc/enable_esx_shell \n
+                vim-cmd hostsvc/start_esx_shell \n
+                #suppress Shell Warning \n
+                esxcli system settings advanced set -o /UserVars/SuppressShellWarning -i 1 \n
+                esxcli system settings advanced set -o /UserVars/ESXiShellTimeOut -i 1 \n
+                #Disable IPv6 \n
+                esxcli network ip set --ipv6-enabled=false \n
+                #Disable CEIP \n
+                esxcli system settings advanced set -o /UserVars/HostClientCEIPOptIn -i 2 \n
+                #Firewall Settings \n
+                esxicli network firewall set --default-action false --enabled yes \n
+                FIREWALL_SERVICES='syslog sshClient ntpClient updateManager httpClient netdump' \n
+                for SERVICE in ${FIREWALL_SERVICES} \n
+                do \n
+                esxcli network firewall ruleset set --ruleset-id ${SERVICE} --enabled yes \n
+                done \n
+                # persist changes \n
+                /sbin/auto-backup.sh \n
+                # Exit Maintenance Mode \n
+                vim-cmd hostsvc/maintenance_mode_exit \n
+                #Reboot \n
+                sleep 30  \n
+                reboot" 
+      when: state == "present"
+
+
+    - name: 02 Copying files from OS image source . . . backing up defaults . . .
+      shell: |
+         mkdir -p /tmp/{{ esxi_hostname }}
+         cp -rp {{ ua_iso_source }}/* /tmp/{{ esxi_hostname }}/
+         mv /tmp/{{ esxi_hostname }}/boot.cfg /tmp/{{ esxi_hostname }}/boot.cfg.orig
+         mv /tmp/{{ esxi_hostname }}/efi/boot/boot.cfg /tmp/{{ esxi_hostname }}/efi/boot/boot.cfg.orig
+      when: state == "present"
+  
+
+    - name: 03 Creating boot.cfg file 
+      file:
+        path: /tmp/{{ esxi_hostname }}/boot.cfg
+        state: touch
+        mode: '1777'
+      when: state == "present"
+
+    - name: 04 Adding content to bootcfg file . . .
+      lineinfile:
+          path: /tmp/{{ esxi_hostname }}/boot.cfg
+          line: "bootstate=0 \n
+                title=Loading ESXi installer for {{ esxi_hostname }} \n
+                timeout=5 \n
+                prefix= \n
+                kernel=/b.b00 \n
+                #kernelopt=ks=nfs://{{ ua_nfs_server }}/{{ ua_nfs_path }}/{{ esxi_hostname }}.cfg bootproto=dhcp netdevice=vmnic0 \n 
+                kernelopt=ks=nfs://{{ ua_nfs_server }}/{{ ua_nfs_path }}/{{ esxi_hostname }}.cfg bootproto=dhcp --vlanid={{ oob_vlan_id }} netdevice=vmnic0 \n 
+                modules=/jumpstrt.gz --- /useropts.gz --- /features.gz --- /k.b00 --- /uc_intel.b00 --- /uc_amd.b00 --- /uc_hygon.b00 --- /procfs.b00 --- /vmx.v00 --- /vim.v00 --- /tpm.v00 --- /sb.v00 --- /s.v00 --- /ucs_tool.v00 --- /nfnic.v00 --- /bnxtnet.v00 --- /bnxtroce.v00 --- /brcmfcoe.v00 --- /brcmnvme.v00 --- /elxiscsi.v00 --- /elxnet.v00 --- /i40en.v00 --- /i40iwn.v00 --- /iavmd.v00 --- /igbn.v00 --- /iser.v00 --- /ixgben.v00 --- /lpfc.v00 --- /lpnic.v00 --- /lsi_mr3.v00 --- /lsi_msgp.v00 --- /lsi_msgp.v01 --- /lsi_msgp.v02 --- /mtip32xx.v00 --- /ne1000.v00 --- /nenic.v00 --- /nhpsa.v00 --- /nmlx4_co.v00 --- /nmlx4_en.v00 --- /nmlx4_rd.v00 --- /nmlx5_co.v00 --- /nmlx5_rd.v00 --- /ntg3.v00 --- /nvme_pci.v00 --- /nvmerdma.v00 --- /nvmxnet3.v00 --- /nvmxnet3.v01 --- /pvscsi.v00 --- /qcnic.v00 --- /qedentv.v00 --- /qedrntv.v00 --- /qfle3.v00 --- /qfle3f.v00 --- /qfle3i.v00 --- /qflge.v00 --- /rste.v00 --- /sfvmk.v00 --- /smartpqi.v00 --- /vmkata.v00 --- /vmkfcoe.v00 --- /vmkusb.v00 --- /vmw_ahci.v00 --- /crx.v00 --- /elx_esx_.v00 --- /btldr.v00 --- /esx_dvfi.v00 --- /esx_ui.v00 --- /esxupdt.v00 --- /tpmesxup.v00 --- /weaselin.v00 --- /loadesx.v00 --- /lsuv2_hp.v00 --- /lsuv2_in.v00 --- /lsuv2_ls.v00 --- /lsuv2_nv.v00 --- /lsuv2_oe.v00 --- /lsuv2_oe.v01 --- /lsuv2_oe.v02 --- /lsuv2_sm.v00 --- /native_m.v00 --- /qlnative.v00 --- /vdfs.v00 --- /vmware_e.v00 --- /vsan.v00 --- /vsanheal.v00 --- /vsanmgmt.v00 --- /tools.t00 --- /xorg.v00 --- /imgdb.tgz --- /imgpayld.tgz \n
+                build=7.0.0-1.0.15843807 \n
+                updated=0 "
+      when: state == "present"
+
+    - name: 05 Copy boot.cfg into EFI diectory
+      shell: >
+        cp /tmp/{{ esxi_hostname }}/boot.cfg /tmp/{{ esxi_hostname }}/efi/boot/boot.cfg
+      when: state == "present"
+
+
+    - name: 06 Create ESXi custom ISO
+      shell: >
+        mkisofs
+        -relaxed-filenames
+        -J
+        -R
+        -b isolinux.bin
+        -c boot.cat
+        -no-emul-boot
+        -boot-load-size 4
+        -boot-info-table
+        -eltorito-alt-boot
+        -e efiboot.img
+        -boot-load-size 1
+        -no-emul-boot
+        -o /{{ ua_local_mp }}/{{ esxi_hostname }}.iso
+        /tmp/{{ esxi_hostname }}/
+      when: state == "present"
+
+    - name: 07 Delete temp directories and files
+      file:
+        path: /tmp/{{ esxi_hostname }}
+        state: absent
+      when: state == "present"
+
+    - name: 00 Adding variables into var-file . . .
+      lineinfile:
+          path: "{{ ua_tmp_vmedia_list_file }}"
+          line: "  - name: '{{ esxi_hostname.split('.')[0] }}'
+                 \n    device_type: 'cdd'
+                 \n    file_name: '{{ esxi_hostname }}.iso'
+                 \n    file_path: '{{ ua_nfs_path }}'
+                 \n    mapping_name: '{{ esxi_hostname.split('.')[0] }}'
+                 \n    mount_proto: 'nfs'
+                 \n    remote_ip: '{{ ua_nfs_server }}' "
+      when: state == "present"
+
+    - name: 99 Remove UA kickstart files 
+      file:
+        path: /{{ ua_local_mp }}/{{ esxi_hostname }}.cfg
+        state: absent
+      when: state == "absent"
+
+    - name: 99 Remove UA ISO files 
+      file:
+        path: /{{ ua_local_mp }}/{{ esxi_hostname }}.iso
+        state: absent
+      when: state == "absent"
+
